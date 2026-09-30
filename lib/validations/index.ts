@@ -73,6 +73,40 @@ export const bookingSchema = z.object({
   endTime: z.coerce.date(),
 });
 
+export const createBookingSchema = z
+  .object({
+    facilityId: z.string().min(1, { message: "Facility ID is required" }),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Date must be YYYY-MM-DD" }),
+    slotStart: z.string().datetime(),
+    slotEnd: z.string().datetime(),
+  })
+  .refine(
+    (d) => {
+      const start = new Date(d.slotStart);
+      const end = new Date(d.slotEnd);
+      const diffHours = (end.getTime() - start.getTime()) / 36e5;
+      return diffHours === 1;
+    },
+    { message: "Slot must be exactly 1 hour", path: ["slotEnd"] }
+  )
+  .refine(
+    (d) => {
+      const selectedDate = new Date(d.date + "T00:00:00");
+      const today = new Date(new Date().toDateString());
+      return selectedDate >= today;
+    },
+    { message: "Cannot book in the past", path: ["date"] }
+  );
+
+export const updateBookingSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("REQUEST_CANCELLATION"), cancelReason: z.string().min(10, { message: "Cancellation reason must be at least 10 characters" }) }),
+  z.object({ action: z.literal("CANCEL") }),
+  z.object({ action: z.literal("APPROVE") }),
+  z.object({ action: z.literal("REJECT"), rejectionReason: z.string().min(10, { message: "Rejection reason must be at least 10 characters" }) }),
+  z.object({ action: z.literal("APPROVE_CANCELLATION") }),
+  z.object({ action: z.literal("REJECT_CANCELLATION") }),
+]);
+
 export const availabilitySchema = z.object({
   facilityId: z.string().min(1),
   dayOfWeek: z.number().min(0).max(6),
@@ -85,5 +119,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type CreateFacilityInput = z.infer<typeof createFacilitySchema>;
 export type UpdateFacilityInput = z.infer<typeof updateFacilitySchema>;
+export type CreateBookingInput = z.infer<typeof createBookingSchema>;
+export type UpdateBookingInput = z.infer<typeof updateBookingSchema>;
 export type BookingInput = z.infer<typeof bookingSchema>;
 export type AvailabilityInput = z.infer<typeof availabilitySchema>;
