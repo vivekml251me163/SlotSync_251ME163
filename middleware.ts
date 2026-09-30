@@ -5,8 +5,11 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow auth API routes, static assets, and images
+  // Public routes (no auth needed)
   if (
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/unauthorized" ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/_next") ||
     pathname.includes("/favicon.ico")
@@ -14,49 +17,39 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const isPublicRoute = pathname === "/login" || pathname === "/register" || pathname === "/unauthorized";
-
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  // If user is unauthenticated and attempting to access a protected route
+  // If no token exists
   if (!token) {
-    if (isPublicRoute) {
-      return NextResponse.next();
+    // API routes return 401 JSON response instead of redirect
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // If user is authenticated and attempting to access login/register
-  if (isPublicRoute && (pathname === "/login" || pathname === "/register")) {
-    const role = token.role as string;
-    if (role === "ADMIN") {
-      return NextResponse.redirect(new URL("/admin", req.url));
-    }
-    if (role === "FACULTY" || role === "CONVENOR") {
-      return NextResponse.redirect(new URL("/faculty", req.url));
-    }
-    return NextResponse.redirect(new URL("/student", req.url));
+  // API routes: role check is deferred to requireRole() per-route
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
   }
 
-  const userRole = (token.role as string) || "STUDENT";
+  const userRole = (token.role as string) || "";
 
-  // Route prefix guards
+  // Prefix-based role guards
   if (pathname.startsWith("/admin")) {
     if (userRole !== "ADMIN") {
       return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
   } else if (pathname.startsWith("/faculty")) {
-    if (userRole !== "FACULTY" && userRole !== "CONVENOR" && userRole !== "ADMIN") {
+    if (!["FACULTY", "CONVENOR", "ADMIN"].includes(userRole)) {
       return NextResponse.redirect(new URL("/unauthorized", req.url));
     }
   } else if (pathname.startsWith("/student")) {
-    // /student/* is accessible by any authenticated user
-    if (!token) {
-      return NextResponse.redirect(new URL("/unauthorized", req.url));
-    }
+    // Any authenticated user passes
+    return NextResponse.next();
   }
 
   return NextResponse.next();
@@ -64,13 +57,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api/auth (NextAuth endpoints)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!api/auth|_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };

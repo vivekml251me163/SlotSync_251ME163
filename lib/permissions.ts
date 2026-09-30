@@ -1,4 +1,41 @@
-import { UserRole } from "@/lib/db/schema";
+import { auth } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { Session } from "next-auth";
+import { roleEnum } from "@/lib/db/schema";
+
+export type Role = typeof roleEnum.enumValues[number];
+
+// Role Constants
+export const ADMIN: Role[] = ["ADMIN"];
+export const FACULTY_OR_ABOVE: Role[] = ["ADMIN", "FACULTY", "CONVENOR"];
+export const ALL_AUTHENTICATED: Role[] = ["ADMIN", "FACULTY", "CONVENOR", "STUDENT"];
+
+/**
+ * Returns boolean — use inside Server Components for conditional rendering
+ */
+export function hasRole(role: Role, allowedRoles: Role[]): boolean {
+  return allowedRoles.includes(role);
+}
+
+/**
+ * Throws 401 response if no session, 403 response if role not in allowedRoles.
+ * Returns session.user if authorized.
+ */
+export async function requireRole(
+  allowedRoles: Role[]
+): Promise<Session["user"] | NextResponse> {
+  const session = await auth();
+
+  if (!session || !session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!hasRole(session.user.role, allowedRoles)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  return session.user;
+}
 
 export type Action =
   | "create:facility"
@@ -14,7 +51,7 @@ export type Action =
   | "view:own_bookings"
   | "manage:users";
 
-export const ROLE_PERMISSIONS: Record<UserRole, Action[]> = {
+export const ROLE_PERMISSIONS: Record<Role, Action[]> = {
   ADMIN: [
     "create:facility",
     "update:facility",
@@ -55,18 +92,18 @@ export const ROLE_PERMISSIONS: Record<UserRole, Action[]> = {
   ],
 };
 
-export const ROLE_ROUTE_PREFIXES: Record<UserRole, string[]> = {
+export const ROLE_ROUTE_PREFIXES: Record<Role, string[]> = {
   ADMIN: ["/admin", "/faculty", "/student"],
   FACULTY: ["/faculty", "/student"],
   CONVENOR: ["/faculty", "/student"],
   STUDENT: ["/student"],
 };
 
-export function hasPermission(role: UserRole, action: Action): boolean {
+export function hasPermission(role: Role, action: Action): boolean {
   return ROLE_PERMISSIONS[role]?.includes(action) ?? false;
 }
 
-export function canAccessRoute(role: UserRole, pathname: string): boolean {
+export function canAccessRoute(role: Role, pathname: string): boolean {
   if (pathname.startsWith("/admin")) {
     return role === "ADMIN";
   }

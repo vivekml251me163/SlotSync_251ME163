@@ -1,25 +1,9 @@
-import NextAuth, { NextAuthConfig, DefaultSession } from "next-auth";
+import NextAuth, { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { UserRole } from "@/lib/db/schema";
-
-declare module "next-auth" {
-  interface User {
-    role?: UserRole;
-  }
-  interface Session {
-    user: {
-      id: string;
-      role: UserRole;
-    } & DefaultSession["user"];
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    id?: string;
-    role?: UserRole;
-  }
-}
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 export const authConfig: NextAuthConfig = {
   providers: [
@@ -34,12 +18,29 @@ export const authConfig: NextAuthConfig = {
           return null;
         }
 
-        // Stubbed authorization logic for scaffolding
+        const email = (credentials.email as string).toLowerCase();
+        const password = credentials.password as string;
+
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1);
+
+        if (!user || !user.passwordHash) {
+          return null;
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+        if (!isPasswordValid) {
+          return null;
+        }
+
         return {
-          id: "stub-user-id",
-          name: "Sample User",
-          email: credentials.email as string,
-          role: "STUDENT" as UserRole,
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
         };
       },
     }),
@@ -50,15 +51,15 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.role = user.role || "STUDENT";
+        token.id = user.id as string;
+        token.role = user.role;
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role || "STUDENT";
+        session.user.id = token.id;
+        session.user.role = token.role;
       }
       return session;
     },
