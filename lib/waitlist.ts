@@ -1,6 +1,8 @@
 import { db as defaultDb } from "@/lib/db";
-import { bookings, waitlist } from "@/lib/db/schema";
+import { bookings, waitlist, users, facilities } from "@/lib/db/schema";
 import { and, eq, asc } from "drizzle-orm";
+import { inngest } from "@/lib/inngest/client";
+import { sendEmail } from "@/lib/email/send";
 
 export async function promoteFromWaitlist(
   facilityId: string,
@@ -46,6 +48,35 @@ export async function promoteFromWaitlist(
 
       return topWaitlist.userId;
     });
+
+    if (promotedUserId) {
+      // Fetch promoted user details & facility details for notifications
+      const [user] = await db.select().from(users).where(eq(users.id, promotedUserId)).limit(1);
+      const [facility] = await db.select().from(facilities).where(eq(facilities.id, facilityId)).limit(1);
+
+      if (user && facility) {
+        const slotEnd = new Date(slotStart.getTime() + 3600000);
+        const eventData = {
+          userEmail: user.email,
+          userName: user.name,
+          facilityName: facility.name,
+          date,
+          slotStart: slotStart.toISOString(),
+          slotEnd: slotEnd.toISOString(),
+        };
+
+        await inngest.send({
+          name: "waitlist/promoted",
+          data: eventData,
+        });
+
+        await sendEmail({
+          type: "WAITLIST_PROMOTED",
+          to: user.email,
+          props: eventData,
+        });
+      }
+    }
 
     return promotedUserId;
   } catch (error: unknown) {

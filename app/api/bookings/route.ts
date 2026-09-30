@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { facilities, bookings, penalties, users } from "@/lib/db/schema";
 import { createBookingSchema } from "@/lib/validations";
 import { requireRole, FACULTY_OR_ABOVE, ALL_AUTHENTICATED } from "@/lib/permissions";
+import { sendEmail } from "@/lib/email/send";
 import { and, eq, gt, inArray, notInArray } from "drizzle-orm";
 
 export async function GET(req: Request) {
@@ -192,6 +193,20 @@ export async function POST(req: Request) {
           })
           .returning();
         return newBooking;
+      });
+
+      // Trigger BOOKING_CONFIRMED email
+      await sendEmail({
+        type: "BOOKING_CONFIRMED",
+        to: user.email || "",
+        props: {
+          userName: user.name || "User",
+          facilityName: facility.name,
+          date,
+          slotStart: startDate.toISOString(),
+          slotEnd: endDate.toISOString(),
+          bookingId: result.id,
+        },
       });
 
       return NextResponse.json(result, { status: 201 });

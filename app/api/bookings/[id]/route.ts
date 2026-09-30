@@ -4,6 +4,8 @@ import { bookings, facilities, users } from "@/lib/db/schema";
 import { updateBookingSchema } from "@/lib/validations";
 import { requireRole, ALL_AUTHENTICATED } from "@/lib/permissions";
 import { promoteFromWaitlist } from "@/lib/waitlist";
+import { sendEmail } from "@/lib/email/send";
+import { inngest } from "@/lib/inngest/client";
 import { and, eq, sql } from "drizzle-orm";
 
 export async function GET(
@@ -87,16 +89,45 @@ export async function PATCH(
 
     const payload = validationResult.data;
 
-    // Fetch existing booking
+    // Fetch existing booking with joined user and facility for notifications
     const [booking] = await db
-      .select()
+      .select({
+        id: bookings.id,
+        userId: bookings.userId,
+        facilityId: bookings.facilityId,
+        date: bookings.date,
+        slotStart: bookings.slotStart,
+        slotEnd: bookings.slotEnd,
+        status: bookings.status,
+        rejectionReason: bookings.rejectionReason,
+        cancelReason: bookings.cancelReason,
+        createdAt: bookings.createdAt,
+        user: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+        },
+        facility: {
+          id: facilities.id,
+          name: facilities.name,
+          location: facilities.location,
+          type: facilities.type,
+        },
+      })
       .from(bookings)
+      .leftJoin(users, eq(bookings.userId, users.id))
+      .leftJoin(facilities, eq(bookings.facilityId, facilities.id))
       .where(eq(bookings.id, id))
       .limit(1);
 
     if (!booking) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
+
+    const bookingUserEmail = booking.user?.email || "";
+    const bookingUserName = booking.user?.name || "User";
+    const facilityName = booking.facility?.name || "Facility";
+    const facilityLocation = booking.facility?.location || "";
 
     switch (payload.action) {
       case "REQUEST_CANCELLATION": {
@@ -138,6 +169,27 @@ export async function PATCH(
           .set({ status: "CANCELLED" })
           .where(eq(bookings.id, id))
           .returning();
+
+        // Notifications
+        if (bookingUserEmail) {
+          await sendEmail({
+            type: "BOOKING_CANCELLED",
+            to: bookingUserEmail,
+            props: {
+              userName: bookingUserName,
+              facilityName,
+              date: booking.date,
+              slotStart: booking.slotStart.toISOString(),
+              slotEnd: booking.slotEnd.toISOString(),
+              cancelReason: booking.cancelReason || undefined,
+            },
+          });
+        }
+
+        await inngest.send({
+          name: "booking/cancelled",
+          data: { bookingId: id },
+        });
 
         await promoteFromWaitlist(booking.facilityId, booking.date, booking.slotStart);
 
@@ -201,6 +253,34 @@ export async function PATCH(
           return NextResponse.json({ error: result.error }, { status: result.status });
         }
 
+        // Notifications
+        if (bookingUserEmail) {
+          await sendEmail({
+            type: "BOOKING_APPROVED",
+            to: bookingUserEmail,
+            props: {
+              userName: bookingUserName,
+              facilityName,
+              date: booking.date,
+              slotStart: booking.slotStart.toISOString(),
+              slotEnd: booking.slotEnd.toISOString(),
+            },
+          });
+
+          await inngest.send({
+            name: "booking/approved",
+            data: {
+              bookingId: id,
+              slotStart: booking.slotStart.toISOString(),
+              userEmail: bookingUserEmail,
+              userName: bookingUserName,
+              facilityName,
+              facilityLocation,
+              date: booking.date,
+            },
+          });
+        }
+
         return NextResponse.json(result.updated, { status: 200 });
       }
 
@@ -224,6 +304,21 @@ export async function PATCH(
           .where(eq(bookings.id, id))
           .returning();
 
+        if (bookingUserEmail) {
+          await sendEmail({
+            type: "BOOKING_REJECTED",
+            to: bookingUserEmail,
+            props: {
+              userName: bookingUserName,
+              facilityName,
+              date: booking.date,
+              slotStart: booking.slotStart.toISOString(),
+              slotEnd: booking.slotEnd.toISOString(),
+              rejectionReason: payload.rejectionReason,
+            },
+          });
+        }
+
         return NextResponse.json(updated, { status: 200 });
       }
 
@@ -243,6 +338,26 @@ export async function PATCH(
           .set({ status: "CANCELLED" })
           .where(eq(bookings.id, id))
           .returning();
+
+        if (bookingUserEmail) {
+          await sendEmail({
+            type: "BOOKING_CANCELLED",
+            to: bookingUserEmail,
+            props: {
+              userName: bookingUserName,
+              facilityName,
+              date: booking.date,
+              slotStart: booking.slotStart.toISOString(),
+              slotEnd: booking.slotEnd.toISOString(),
+              cancelReason: booking.cancelReason || undefined,
+            },
+          });
+        }
+
+        await inngest.send({
+          name: "booking/cancelled",
+          data: { bookingId: id },
+        });
 
         await promoteFromWaitlist(booking.facilityId, booking.date, booking.slotStart);
 
