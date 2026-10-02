@@ -44,6 +44,12 @@ export default async function AdminLayout({
           >
             Analytics
           </Link>
+          <Link
+            href="/admin/roles"
+            className="flex items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+          >
+            Roles & RBAC
+          </Link>
         </nav>
 
         <Separator className="my-4" />

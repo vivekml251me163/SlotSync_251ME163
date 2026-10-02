@@ -56,6 +56,7 @@ export async function promoteFromWaitlist(
           slotStart,
           slotEnd,
           status: "APPROVED",
+          promotedFromWaitlist: true,
         })
         .returning();
 

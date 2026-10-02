@@ -37,6 +37,46 @@ export async function requireRole(
   return session.user;
 }
 
+/**
+ * DB-driven permission check using permissions, rolePermissions, and userRoles tables.
+ */
+export async function requirePermission(
+  permissionName: string
+): Promise<Session["user"] | NextResponse> {
+  const session = await auth();
+
+  if (!session || !session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (session.user.role === "ADMIN") {
+    return session.user;
+  }
+
+  try {
+    const { db } = await import("@/lib/db");
+    const { permissions, rolePermissions, userRoles } = await import("@/lib/db/schema");
+    const { and, eq } = await import("drizzle-orm");
+
+    const userPerms = await db
+      .select({ name: permissions.name })
+      .from(permissions)
+      .innerJoin(rolePermissions, eq(permissions.id, rolePermissions.permissionId))
+      .innerJoin(userRoles, eq(rolePermissions.roleId, userRoles.roleId))
+      .where(and(eq(userRoles.userId, session.user.id), eq(permissions.name, permissionName)))
+      .limit(1);
+
+    if (userPerms.length === 0) {
+      return NextResponse.json({ error: "Forbidden: Missing permission" }, { status: 403 });
+    }
+
+    return session.user;
+  } catch (error) {
+    console.error("Error in requirePermission:", error);
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+}
+
 export type Action =
   | "create:facility"
   | "update:facility"

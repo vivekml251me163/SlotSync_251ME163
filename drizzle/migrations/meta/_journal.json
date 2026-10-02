@@ -8,6 +8,13 @@
       "when": 1790700463001,
       "tag": "0000_daily_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790914723941,
+      "tag": "0001_daffy_infant_terrible",
+      "breakpoints": true
     }
   ]
 }

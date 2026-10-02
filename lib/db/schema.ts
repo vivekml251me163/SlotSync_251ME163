@@ -1,4 +1,16 @@
-import { pgTable, text, timestamp, integer, pgEnum, varchar, date, uniqueIndex, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  integer,
+  pgEnum,
+  varchar,
+  date,
+  uniqueIndex,
+  index,
+  boolean,
+  primaryKey,
+} from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
@@ -64,6 +76,7 @@ export const bookings = pgTable(
     status: bookingStatusEnum("status").default("PENDING").notNull(),
     rejectionReason: text("rejection_reason"),
     cancelReason: text("cancel_reason"),
+    promotedFromWaitlist: boolean("promoted_from_waitlist").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
@@ -123,11 +136,65 @@ export const penalties = pgTable("penalties", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// RBAC: Permissions Table
+export const permissions = pgTable("permissions", {
+  id: text("id")
+    .$defaultFn(() => createId())
+    .primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// RBAC: Roles Table
+export const roles = pgTable("roles", {
+  id: text("id")
+    .$defaultFn(() => createId())
+    .primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  isDefault: boolean("is_default").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// RBAC: Role Permissions Join Table
+export const rolePermissions = pgTable(
+  "role_permissions",
+  {
+    roleId: text("role_id")
+      .references(() => roles.id, { onDelete: "cascade" })
+      .notNull(),
+    permissionId: text("permission_id")
+      .references(() => permissions.id, { onDelete: "cascade" })
+      .notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.roleId, table.permissionId] }),
+  })
+);
+
+// RBAC: User Roles Join Table
+export const userRoles = pgTable(
+  "user_roles",
+  {
+    userId: text("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    roleId: text("role_id")
+      .references(() => roles.id, { onDelete: "cascade" })
+      .notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.roleId] }),
+  })
+);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   bookings: many(bookings),
   waitlist: many(waitlist),
   penalties: many(penalties),
+  userRoles: many(userRoles),
 }));
 
 export const facilitiesRelations = relations(facilities, ({ many }) => ({
@@ -164,6 +231,37 @@ export const penaltiesRelations = relations(penalties, ({ one }) => ({
   }),
 }));
 
+export const rolesRelations = relations(roles, ({ many }) => ({
+  rolePermissions: many(rolePermissions),
+  userRoles: many(userRoles),
+}));
+
+export const permissionsRelations = relations(permissions, ({ many }) => ({
+  rolePermissions: many(rolePermissions),
+}));
+
+export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => ({
+  role: one(roles, {
+    fields: [rolePermissions.roleId],
+    references: [roles.id],
+  }),
+  permission: one(permissions, {
+    fields: [rolePermissions.permissionId],
+    references: [permissions.id],
+  }),
+}));
+
+export const userRolesRelations = relations(userRoles, ({ one }) => ({
+  user: one(users, {
+    fields: [userRoles.userId],
+    references: [users.id],
+  }),
+  role: one(roles, {
+    fields: [userRoles.roleId],
+    references: [roles.id],
+  }),
+}));
+
 // TypeScript Types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -175,4 +273,11 @@ export type Waitlist = typeof waitlist.$inferSelect;
 export type NewWaitlist = typeof waitlist.$inferInsert;
 export type Penalty = typeof penalties.$inferSelect;
 export type NewPenalty = typeof penalties.$inferInsert;
+export type Permission = typeof permissions.$inferSelect;
+export type NewPermission = typeof permissions.$inferInsert;
+export type Role = typeof roles.$inferSelect;
+export type NewRole = typeof roles.$inferInsert;
+export type RolePermission = typeof rolePermissions.$inferSelect;
+export type UserRoleRelation = typeof userRoles.$inferSelect;
+
 export type UserRole = "ADMIN" | "FACULTY" | "CONVENOR" | "STUDENT";
