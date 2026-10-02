@@ -13,7 +13,7 @@ const updateRoleSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authResult = await requirePermission("manage_roles");
@@ -21,7 +21,7 @@ export async function PATCH(
       return authResult;
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const [existingRole] = await db.select().from(roles).where(eq(roles.id, id)).limit(1);
     if (!existingRole) {
@@ -80,7 +80,7 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authResult = await requirePermission("manage_roles");
@@ -88,7 +88,7 @@ export async function DELETE(
       return authResult;
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const [existingRole] = await db.select().from(roles).where(eq(roles.id, id)).limit(1);
     if (!existingRole) {

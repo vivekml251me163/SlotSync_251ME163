@@ -11,7 +11,7 @@ const updateUserRoleSchema = z.object({
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authResult = await requirePermission("manage_roles");
@@ -19,7 +19,7 @@ export async function PUT(
       return authResult;
     }
 
-    const { id: userId } = params;
+    const { id: userId } = await params;
 
     const [targetUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (!targetUser) {

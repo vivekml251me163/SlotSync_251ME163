@@ -7,6 +7,29 @@ export const loginSchema = z.object({
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
 });
 
+export const loginFormSchema = z.object({
+  email: z.string().email("Enter a valid email"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export const registerFormSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    email: z.string().email("Enter a valid email"),
+    department: z.string().min(2, "Department is required"),
+    role: z.enum(["STUDENT", "FACULTY", "CONVENOR"]),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Must contain an uppercase letter")
+      .regex(/[0-9]/, "Must contain a number"),
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
 export const registerSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.string().email({ message: "Invalid email address" }),
@@ -130,6 +153,8 @@ export const availabilitySchema = z.object({
   isAvailable: z.boolean().default(true),
 });
 
+export type LoginFormInput = z.infer<typeof loginFormSchema>;
+export type RegisterFormInput = z.infer<typeof registerFormSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type CreateFacilityInput = z.infer<typeof createFacilitySchema>;

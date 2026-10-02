@@ -1,103 +1,121 @@
+import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { facilities } from "@/lib/db/schema";
-import { Badge } from "@/components/ui/badge";
-import { AddFacilityDialog } from "@/components/booking-form/AddFacilityDialog";
-import { FacilityActions } from "@/components/booking-form/FacilityActions";
+import { desc } from "drizzle-orm";
+import { FacilitiesTable } from "@/components/admin/facilities/FacilitiesTable";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Building2, CheckCircle2, Wrench, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+function FacilitiesTableSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-16 w-full rounded-xl bg-card border border-border" />
+      <div className="space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-14 w-full rounded-lg bg-card" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default async function AdminFacilitiesPage() {
   const facilityList = await db
     .select()
     .from(facilities)
-    .orderBy(facilities.name);
+    .orderBy(desc(facilities.createdAt));
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case "AVAILABLE":
-        return "success";
-      case "UNDER_MAINTENANCE":
-        return "warning";
-      case "UNAVAILABLE":
-        return "danger";
-      default:
-        return "outline";
-    }
-  };
-
-  const formatType = (type: string) => {
-    switch (type) {
-      case "classroom":
-        return "Classroom";
-      case "seminar_hall":
-        return "Seminar Hall";
-      case "lab":
-        return "Lab";
-      case "sports":
-        return "Sports Complex";
-      default:
-        return type.toUpperCase();
-    }
-  };
+  const totalFacilities = facilityList.length;
+  const availableCount = facilityList.filter((f) => f.status === "AVAILABLE").length;
+  const maintenanceCount = facilityList.filter((f) => f.status === "UNDER_MAINTENANCE").length;
+  const totalSeats = facilityList.reduce((sum, f) => sum + (f.capacity || 0), 0);
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Facility Management</h1>
-          <p className="text-sm text-gray-500">
-            View, add, edit, and manage all campus facilities.
-          </p>
-        </div>
-        <AddFacilityDialog />
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
+          Facilities
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Manage campus infrastructure, opening hours, and operational status.
+        </p>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="w-full text-left text-sm text-gray-600">
-          <thead className="bg-gray-50 text-xs uppercase text-gray-700 border-b border-gray-200">
-            <tr>
-              <th className="px-6 py-3 font-semibold">Name</th>
-              <th className="px-6 py-3 font-semibold">Type</th>
-              <th className="px-6 py-3 font-semibold">Location</th>
-              <th className="px-6 py-3 font-semibold">Capacity</th>
-              <th className="px-6 py-3 font-semibold">Hours</th>
-              <th className="px-6 py-3 font-semibold">Status</th>
-              <th className="px-6 py-3 font-semibold text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {facilityList.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                  No facilities found. Click &quot;Add Facility&quot; to create one.
-                </td>
-              </tr>
-            ) : (
-              facilityList.map((facility) => (
-                <tr key={facility.id} className="hover:bg-gray-50/50">
-                  <td className="px-6 py-4 font-medium text-gray-900">
-                    {facility.name}
-                  </td>
-                  <td className="px-6 py-4">{formatType(facility.type)}</td>
-                  <td className="px-6 py-4">{facility.location}</td>
-                  <td className="px-6 py-4">{facility.capacity}</td>
-                  <td className="px-6 py-4">
-                    {facility.openingTime} - {facility.closingTime}
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge variant={getStatusBadgeVariant(facility.status)}>
-                      {facility.status.replace("_", " ")}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <FacilityActions facility={facility} />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      {/* Stat Cards Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-card border-border">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Total Facilities
+              </p>
+              <p className="font-display text-2xl font-semibold text-foreground mt-1">
+                {totalFacilities}
+              </p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Building2 className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Available
+              </p>
+              <p className="font-display text-2xl font-semibold text-emerald-400 mt-1">
+                {availableCount}
+              </p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Under Maintenance
+              </p>
+              <p className="font-display text-2xl font-semibold text-purple-400 mt-1">
+                {maintenanceCount}
+              </p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
+              <Wrench className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Total Seats
+              </p>
+              <p className="font-display text-2xl font-semibold text-foreground mt-1">
+                {totalSeats}
+              </p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
+              <Users className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Facilities TanStack Table with Suspense Fallback */}
+      <Suspense fallback={<FacilitiesTableSkeleton />}>
+        <FacilitiesTable facilities={facilityList} />
+      </Suspense>
     </div>
   );
 }

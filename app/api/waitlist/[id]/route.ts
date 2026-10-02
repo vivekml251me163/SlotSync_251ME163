@@ -6,7 +6,7 @@ import { eq, sql } from "drizzle-orm";
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authResult = await requireRole(FACULTY_OR_ABOVE);
@@ -15,7 +15,7 @@ export async function DELETE(
     }
     const user = authResult;
 
-    const { id } = params;
+    const { id } = await params;
 
     // 1. Fetch waitlist entry
     const [entry] = await db

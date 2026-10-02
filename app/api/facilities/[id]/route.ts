@@ -68,10 +68,11 @@ export async function PATCH(
 
     const updateData = validationResult.data;
 
-    // Check status change constraints
+    // Check status change constraints (skip if force === true)
     if (
       updateData.status &&
-      (updateData.status === "UNDER_MAINTENANCE" || updateData.status === "UNAVAILABLE")
+      (updateData.status === "UNDER_MAINTENANCE" || updateData.status === "UNAVAILABLE") &&
+      body.force !== true
     ) {
       const now = new Date();
       const activeBookings = await db
@@ -80,14 +81,14 @@ export async function PATCH(
         .where(
           and(
             eq(bookings.facilityId, id),
-            eq(bookings.status, "APPROVED"),
+            inArray(bookings.status, ["APPROVED", "PENDING"]),
             gt(bookings.slotStart, now)
           )
         );
 
       if (activeBookings.length > 0) {
         return NextResponse.json(
-          { error: "Active bookings exist", count: activeBookings.length },
+          { error: "Cannot change facility status with active bookings", count: activeBookings.length },
           { status: 409 }
         );
       }

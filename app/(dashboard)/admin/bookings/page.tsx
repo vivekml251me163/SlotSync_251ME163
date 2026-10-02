@@ -1,13 +1,29 @@
+import { Suspense } from "react";
 import { db } from "@/lib/db";
-import { bookings, facilities, users } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { Badge } from "@/components/ui/badge";
-import { BookingActions } from "@/components/booking-form/BookingActions";
+import { bookings, users, facilities } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
+import { BookingsTable } from "@/components/admin/bookings/BookingsTable";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Calendar, Clock, CheckCircle2, XCircle, RotateCcw } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+function BookingsTableSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-16 w-full rounded-xl bg-card border border-border" />
+      <div className="space-y-2">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-14 w-full rounded-lg bg-card" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default async function AdminBookingsPage() {
-  const bookingList = await db
+  const rawBookings = await db
     .select({
       id: bookings.id,
       userId: bookings.userId,
@@ -23,110 +39,133 @@ export default async function AdminBookingsPage() {
         id: users.id,
         name: users.name,
         email: users.email,
+        role: users.role,
       },
       facility: {
         id: facilities.id,
         name: facilities.name,
-        location: facilities.location,
         type: facilities.type,
+        location: facilities.location,
       },
     })
     .from(bookings)
     .leftJoin(users, eq(bookings.userId, users.id))
     .leftJoin(facilities, eq(bookings.facilityId, facilities.id))
-    .orderBy(bookings.createdAt);
+    .orderBy(desc(bookings.createdAt));
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case "APPROVED":
-        return "success";
-      case "PENDING":
-        return "warning";
-      case "CANCELLATION_REQUESTED":
-        return "warning";
-      case "REJECTED":
-      case "CANCELLED":
-        return "danger";
-      default:
-        return "outline";
-    }
-  };
+  const formattedBookings = rawBookings.map((b) => ({
+    ...b,
+    date: String(b.date),
+    slotStart: new Date(b.slotStart).toISOString(),
+    slotEnd: new Date(b.slotEnd).toISOString(),
+    createdAt: new Date(b.createdAt).toISOString(),
+  }));
 
-  const formatTime = (date: Date) => {
-    try {
-      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
-    } catch {
-      return "";
-    }
-  };
+  const totalCount = formattedBookings.length;
+  const pendingCount = formattedBookings.filter((b) => b.status === "PENDING").length;
+  const approvedCount = formattedBookings.filter((b) => b.status === "APPROVED").length;
+  const rejectedCount = formattedBookings.filter((b) => b.status === "REJECTED").length;
+  const cancelReqCount = formattedBookings.filter((b) => b.status === "CANCELLATION_REQUESTED").length;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Booking Management</h1>
-        <p className="text-sm text-gray-500">
-          Review, approve, reject, or handle cancellation requests for all facility bookings.
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
+          Bookings
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Review and manage all campus booking requests, approvals, and cancellations.
         </p>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-        <table className="w-full text-left text-sm text-gray-600">
-          <thead className="bg-gray-50 text-xs uppercase text-gray-700 border-b border-gray-200">
-            <tr>
-              <th className="px-6 py-3 font-semibold">User</th>
-              <th className="px-6 py-3 font-semibold">Facility</th>
-              <th className="px-6 py-3 font-semibold">Date</th>
-              <th className="px-6 py-3 font-semibold">Slot Time</th>
-              <th className="px-6 py-3 font-semibold">Status</th>
-              <th className="px-6 py-3 font-semibold text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {bookingList.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                  No booking requests found.
-                </td>
-              </tr>
-            ) : (
-              bookingList.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50/50">
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">{item.user?.name || "Unknown"}</div>
-                    <div className="text-xs text-gray-500">{item.user?.email}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">{item.facility?.name || "Unknown"}</div>
-                    <div className="text-xs text-gray-500">{item.facility?.location}</div>
-                  </td>
-                  <td className="px-6 py-4 font-medium text-gray-900">{item.date}</td>
-                  <td className="px-6 py-4">
-                    {formatTime(item.slotStart)} - {formatTime(item.slotEnd)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge variant={getStatusBadgeVariant(item.status)}>
-                      {item.status.replace("_", " ")}
-                    </Badge>
-                    {item.cancelReason && (
-                      <p className="mt-1 text-xs text-gray-500 italic max-w-xs truncate">
-                        Reason: {item.cancelReason}
-                      </p>
-                    )}
-                    {item.rejectionReason && (
-                      <p className="mt-1 text-xs text-red-500 italic max-w-xs truncate">
-                        Rejected: {item.rejectionReason}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <BookingActions booking={item} isAdmin={true} />
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      {/* Stat Cards Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <Card className="bg-card border-border">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Total
+              </p>
+              <p className="font-display text-2xl font-semibold text-foreground mt-1">
+                {totalCount}
+              </p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Calendar className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Pending
+              </p>
+              <p className="font-display text-2xl font-semibold text-yellow-400 mt-1">
+                {pendingCount}
+              </p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-500/10 text-yellow-400">
+              <Clock className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Approved
+              </p>
+              <p className="font-display text-2xl font-semibold text-green-400 mt-1">
+                {approvedCount}
+              </p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10 text-green-400">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Rejected
+              </p>
+              <p className="font-display text-2xl font-semibold text-red-400 mt-1">
+                {rejectedCount}
+              </p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10 text-red-400">
+              <XCircle className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Cancel Requested
+              </p>
+              <p className="font-display text-2xl font-semibold text-orange-400 mt-1">
+                {cancelReqCount}
+              </p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10 text-orange-400">
+              <RotateCcw className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Bookings TanStack Table */}
+      <Suspense fallback={<BookingsTableSkeleton />}>
+        <BookingsTable bookings={formattedBookings} />
+      </Suspense>
     </div>
   );
 }
