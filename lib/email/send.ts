@@ -7,6 +7,7 @@ import BookingRejected, { BookingRejectedProps } from "./templates/BookingReject
 import BookingCancelled, { BookingCancelledProps } from "./templates/BookingCancelled";
 import SlotReminder, { SlotReminderProps } from "./templates/SlotReminder";
 import WaitlistPromoted, { WaitlistPromotedProps } from "./templates/WaitlistPromoted";
+import PenaltyApplied, { PenaltyAppliedProps } from "./templates/PenaltyApplied";
 
 export type EmailPayload =
   | { type: "BOOKING_CONFIRMED"; to: string; props: BookingConfirmationProps }
@@ -14,7 +15,8 @@ export type EmailPayload =
   | { type: "BOOKING_REJECTED"; to: string; props: BookingRejectedProps }
   | { type: "BOOKING_CANCELLED"; to: string; props: BookingCancelledProps }
   | { type: "SLOT_REMINDER"; to: string; props: SlotReminderProps }
-  | { type: "WAITLIST_PROMOTED"; to: string; props: WaitlistPromotedProps };
+  | { type: "WAITLIST_PROMOTED"; to: string; props: WaitlistPromotedProps }
+  | { type: "PENALTY_APPLIED"; to: string; props: PenaltyAppliedProps };
 
 export async function sendEmail(payload: EmailPayload): Promise<void> {
   try {
@@ -45,6 +47,10 @@ export async function sendEmail(payload: EmailPayload): Promise<void> {
       case "WAITLIST_PROMOTED":
         subject = "SlotSync - Promoted from Waitlist!";
         component = React.createElement(WaitlistPromoted, payload.props);
+        break;
+      case "PENALTY_APPLIED":
+        subject = "SlotSync - Booking Restriction Notice";
+        component = React.createElement(PenaltyApplied, payload.props);
         break;
     }
 

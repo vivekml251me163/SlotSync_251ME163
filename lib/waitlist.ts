@@ -1,15 +1,25 @@
 import { db as defaultDb } from "@/lib/db";
 import { bookings, waitlist, users, facilities } from "@/lib/db/schema";
-import { and, eq, asc } from "drizzle-orm";
-import { inngest } from "@/lib/inngest/client";
-import { sendEmail } from "@/lib/email/send";
+import { and, eq, asc, sql } from "drizzle-orm";
+
+export interface PromotionResult {
+  promotedUserId: string;
+  userEmail: string;
+  userName: string;
+  facilityName: string;
+  facilityLocation: string;
+  date: string;
+  slotStart: Date;
+  slotEnd: Date;
+  bookingId: string;
+}
 
 export async function promoteFromWaitlist(
   facilityId: string,
   date: string,
   slotStart: Date,
   db = defaultDb
-): Promise<string | null> {
+): Promise<PromotionResult | null> {
   try {
     // 1. Find lowest-position waitlist entry for this slot
     const [topWaitlist] = await db
@@ -29,56 +39,60 @@ export async function promoteFromWaitlist(
       return null;
     }
 
+    const slotEnd = new Date(slotStart.getTime() + 3600000);
+
     // 3. Inside db.transaction()
-    const promotedUserId = await db.transaction(async (tx) => {
+    const promotionData = await db.transaction(async (tx) => {
       // a. Delete top waitlist entry
       await tx.delete(waitlist).where(eq(waitlist.id, topWaitlist.id));
 
-      const slotEnd = new Date(slotStart.getTime() + 3600000);
+      // b. Insert new APPROVED booking for that user
+      const [newBooking] = await tx
+        .insert(bookings)
+        .values({
+          userId: topWaitlist.userId,
+          facilityId,
+          date,
+          slotStart,
+          slotEnd,
+          status: "APPROVED",
+        })
+        .returning();
 
-      // b. Insert new APPROVED booking
-      await tx.insert(bookings).values({
-        userId: topWaitlist.userId,
-        facilityId,
-        date,
-        slotStart,
-        slotEnd,
-        status: "APPROVED",
-      });
+      // c. Re-sequence remaining waitlist positions
+      await tx.execute(sql`
+        UPDATE waitlist SET position = sub.rn
+        FROM (
+          SELECT id, ROW_NUMBER() OVER (ORDER BY "created_at" ASC) as rn
+          FROM waitlist
+          WHERE "facility_id" = ${facilityId} AND date = ${date} AND "slot_start" = ${slotStart}
+        ) sub
+        WHERE waitlist.id = sub.id
+      `);
 
-      return topWaitlist.userId;
+      return { newBooking, userId: topWaitlist.userId };
     });
 
-    if (promotedUserId) {
-      // Fetch promoted user details & facility details for notifications
-      const [user] = await db.select().from(users).where(eq(users.id, promotedUserId)).limit(1);
+    if (promotionData?.newBooking) {
+      const [user] = await db.select().from(users).where(eq(users.id, promotionData.userId)).limit(1);
       const [facility] = await db.select().from(facilities).where(eq(facilities.id, facilityId)).limit(1);
 
       if (user && facility) {
-        const slotEnd = new Date(slotStart.getTime() + 3600000);
-        const eventData = {
+        return {
+          promotedUserId: user.id,
           userEmail: user.email,
           userName: user.name,
           facilityName: facility.name,
+          facilityLocation: facility.location,
           date,
-          slotStart: slotStart.toISOString(),
-          slotEnd: slotEnd.toISOString(),
+          slotStart,
+          slotEnd,
+          bookingId: promotionData.newBooking.id,
         };
-
-        await inngest.send({
-          name: "waitlist/promoted",
-          data: eventData,
-        });
-
-        await sendEmail({
-          type: "WAITLIST_PROMOTED",
-          to: user.email,
-          props: eventData,
-        });
       }
     }
 
-    return promotedUserId;
+    return null;
   } catch (error: unknown) {
     const err = error as { code?: string; message?: string };
     if (

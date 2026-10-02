@@ -138,6 +138,59 @@ export function SlotGrid({
     }
   };
 
+  const [waitlistSubmittingSlot, setWaitlistSubmittingSlot] = useState<string | null>(null);
+
+  const handleJoinWaitlist = async (slot: Slot) => {
+    if (isStudent || userBookingToday) return;
+
+    setWaitlistSubmittingSlot(slot.slotStart);
+    setToastMsg(null);
+
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          facilityId,
+          date: selectedDate,
+          slotStart: slot.slotStart,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.status === 201) {
+        setToastMsg({
+          type: "success",
+          text: `You are #${data.position} on the waitlist`,
+        });
+      } else if (res.status === 409 && data.error === "Already on waitlist") {
+        setToastMsg({
+          type: "error",
+          text: "Already on waitlist for this slot",
+        });
+      } else if (res.status === 400 && data.error === "Slot is available, book directly") {
+        setToastMsg({
+          type: "error",
+          text: "Slot is available, book directly",
+        });
+        fetchAvailability();
+      } else {
+        setToastMsg({
+          type: "error",
+          text: data.error || "Failed to join waitlist",
+        });
+      }
+    } catch {
+      setToastMsg({
+        type: "error",
+        text: "An error occurred while joining waitlist.",
+      });
+    } finally {
+      setWaitlistSubmittingSlot(null);
+    }
+  };
+
   return (
     <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
       <div className="flex items-center justify-between">
@@ -234,20 +287,32 @@ export function SlotGrid({
             }
 
             return (
-              <button
-                key={index}
-                disabled={disabled}
-                onClick={() => handleSlotClick(slot)}
-                className={`flex flex-col items-center justify-center rounded-md border p-3 text-center transition-all ${buttonStyles}`}
-              >
-                <span className="flex items-center gap-1 text-sm font-bold">
-                  <Clock className="h-3.5 w-3.5" />
-                  {formatTime(slot.slotStart)} - {formatTime(slot.slotEnd)}
-                </span>
-                <span className="mt-1 text-xs font-semibold uppercase tracking-wider opacity-80">
-                  {labelText}
-                </span>
-              </button>
+              <div key={index} className="flex flex-col gap-1.5">
+                <button
+                  disabled={disabled}
+                  onClick={() => handleSlotClick(slot)}
+                  className={`flex flex-col items-center justify-center rounded-md border p-3 text-center transition-all w-full ${buttonStyles}`}
+                >
+                  <span className="flex items-center gap-1 text-sm font-bold">
+                    <Clock className="h-3.5 w-3.5" />
+                    {formatTime(slot.slotStart)} - {formatTime(slot.slotEnd)}
+                  </span>
+                  <span className="mt-1 text-xs font-semibold uppercase tracking-wider opacity-80">
+                    {labelText}
+                  </span>
+                </button>
+                {isBooked && !isStudent && (
+                  <button
+                    disabled={userBookingToday || waitlistSubmittingSlot === slot.slotStart}
+                    onClick={() => handleJoinWaitlist(slot)}
+                    className="w-full text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {waitlistSubmittingSlot === slot.slotStart
+                      ? "Joining..."
+                      : "Join Waitlist"}
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>

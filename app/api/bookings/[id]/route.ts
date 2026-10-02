@@ -129,6 +129,43 @@ export async function PATCH(
     const facilityName = booking.facility?.name || "Facility";
     const facilityLocation = booking.facility?.location || "";
 
+    const handlePromotionEvents = async (promo: any) => {
+      if (!promo) return;
+      const promoEventData = {
+        userEmail: promo.userEmail,
+        userName: promo.userName,
+        facilityName: promo.facilityName,
+        date: promo.date,
+        slotStart: promo.slotStart.toISOString(),
+        slotEnd: promo.slotEnd.toISOString(),
+      };
+
+      await inngest.send({
+        name: "waitlist/promoted",
+        data: promoEventData,
+      });
+
+      await sendEmail({
+        type: "WAITLIST_PROMOTED",
+        to: promo.userEmail,
+        props: promoEventData,
+      });
+
+      await inngest.send({
+        name: "booking/approved",
+        data: {
+          bookingId: promo.bookingId,
+          slotStart: promo.slotStart.toISOString(),
+          slotEnd: promo.slotEnd.toISOString(),
+          userEmail: promo.userEmail,
+          userName: promo.userName,
+          facilityName: promo.facilityName,
+          facilityLocation: promo.facilityLocation,
+          date: promo.date,
+        },
+      });
+    };
+
     switch (payload.action) {
       case "REQUEST_CANCELLATION": {
         if (booking.userId !== user.id && user.role !== "ADMIN") {
@@ -191,7 +228,8 @@ export async function PATCH(
           data: { bookingId: id },
         });
 
-        await promoteFromWaitlist(booking.facilityId, booking.date, booking.slotStart);
+        const promo = await promoteFromWaitlist(booking.facilityId, booking.date, booking.slotStart);
+        await handlePromotionEvents(promo);
 
         return NextResponse.json(updated, { status: 200 });
       }
@@ -208,10 +246,8 @@ export async function PATCH(
         }
 
         const result = await db.transaction(async (tx) => {
-          // SELECT FOR UPDATE on booking row using raw SQL
           await tx.execute(sql`SELECT id FROM bookings WHERE id = ${id} FOR UPDATE`);
 
-          // Re-fetch booking inside transaction to check latest status
           const [currentBooking] = await tx
             .select()
             .from(bookings)
@@ -222,7 +258,6 @@ export async function PATCH(
             return { error: "Booking already processed", status: 409 };
           }
 
-          // Check for any other APPROVED booking with same facilityId + date + slotStart
           const [conflict] = await tx
             .select()
             .from(bookings)
@@ -272,6 +307,7 @@ export async function PATCH(
             data: {
               bookingId: id,
               slotStart: booking.slotStart.toISOString(),
+              slotEnd: booking.slotEnd.toISOString(),
               userEmail: bookingUserEmail,
               userName: bookingUserName,
               facilityName,
@@ -359,7 +395,8 @@ export async function PATCH(
           data: { bookingId: id },
         });
 
-        await promoteFromWaitlist(booking.facilityId, booking.date, booking.slotStart);
+        const promo = await promoteFromWaitlist(booking.facilityId, booking.date, booking.slotStart);
+        await handlePromotionEvents(promo);
 
         return NextResponse.json(updated, { status: 200 });
       }

@@ -107,6 +107,21 @@ export const updateBookingSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("REJECT_CANCELLATION") }),
 ]);
 
+export const joinWaitlistSchema = z
+  .object({
+    facilityId: z.string().min(1, { message: "Facility ID is required" }),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Date must be YYYY-MM-DD" }),
+    slotStart: z.string().datetime(),
+  })
+  .refine(
+    (d) => {
+      const selectedDate = new Date(d.date + "T00:00:00");
+      const today = new Date(new Date().toDateString());
+      return selectedDate >= today;
+    },
+    { message: "Cannot join waitlist for past date", path: ["date"] }
+  );
+
 export const availabilitySchema = z.object({
   facilityId: z.string().min(1),
   dayOfWeek: z.number().min(0).max(6),
@@ -121,5 +136,6 @@ export type CreateFacilityInput = z.infer<typeof createFacilitySchema>;
 export type UpdateFacilityInput = z.infer<typeof updateFacilitySchema>;
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 export type UpdateBookingInput = z.infer<typeof updateBookingSchema>;
+export type JoinWaitlistInput = z.infer<typeof joinWaitlistSchema>;
 export type BookingInput = z.infer<typeof bookingSchema>;
 export type AvailabilityInput = z.infer<typeof availabilitySchema>;

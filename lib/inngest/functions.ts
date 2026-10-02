@@ -1,5 +1,8 @@
 import { inngest } from "./client";
 import { sendEmail } from "@/lib/email/send";
+import { db } from "@/lib/db";
+import { bookings, penalties, users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export const sendSlotReminder = (inngest.createFunction as any)(
   {
@@ -45,6 +48,51 @@ export const promoteWaitlistNotifier = (inngest.createFunction as any)(
           slotEnd: event.data.slotEnd,
         },
       });
+    });
+  }
+);
+
+export const detectNoShow = (inngest.createFunction as any)(
+  { id: "detect-no-show" },
+  { event: "booking/approved" },
+  async ({ event, step }: { event: any; step: any }) => {
+    const { bookingId, slotEnd } = event.data;
+
+    await step.sleepUntil("wait-until-slot-end", new Date(slotEnd));
+
+    await step.run("check-no-show", async () => {
+      const [booking] = await db
+        .select()
+        .from(bookings)
+        .where(eq(bookings.id, bookingId))
+        .limit(1);
+
+      if (!booking || booking.status !== "APPROVED") return;
+
+      const restrictedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      await db.insert(penalties).values({
+        userId: booking.userId,
+        restrictedUntil,
+        reason: `No-show for booking ${bookingId}`,
+      });
+
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, booking.userId))
+        .limit(1);
+
+      if (user) {
+        await sendEmail({
+          type: "PENALTY_APPLIED",
+          to: user.email,
+          props: {
+            userName: user.name,
+            restrictedUntil: restrictedUntil.toISOString(),
+          },
+        });
+      }
     });
   }
 );

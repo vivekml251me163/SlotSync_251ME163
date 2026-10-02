@@ -29,17 +29,39 @@ interface UserBooking {
   };
 }
 
+interface WaitlistEntry {
+  id: string;
+  userId: string;
+  facilityId: string;
+  date: string;
+  slotStart: string;
+  position: number;
+  createdAt: string;
+  facility?: {
+    id: string;
+    name: string;
+    location: string;
+    type: string;
+  };
+}
+
 export function FacultyBookingTabs({ initialFacilities, isStudent = false }: FacultyBookingTabsProps) {
   const [activeTab, setActiveTab] = useState<"book" | "my-bookings">("book");
   const [myBookings, setMyBookings] = useState<UserBooking[]>([]);
+  const [myWaitlist, setMyWaitlist] = useState<WaitlistEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isWaitlistLoading, setIsWaitlistLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [leavingWaitlistId, setLeavingWaitlistId] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeTab === "my-bookings") {
       fetchMyBookings();
+      if (!isStudent) {
+        fetchMyWaitlist();
+      }
     }
-  }, [activeTab]);
+  }, [activeTab, isStudent]);
 
   const fetchMyBookings = async () => {
     setIsLoading(true);
@@ -58,6 +80,37 @@ export function FacultyBookingTabs({ initialFacilities, isStudent = false }: Fac
       setErrorMsg("An error occurred while fetching bookings.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchMyWaitlist = async () => {
+    setIsWaitlistLoading(true);
+    try {
+      const res = await fetch("/api/waitlist");
+      const data = await res.json();
+      if (res.ok) {
+        setMyWaitlist(data || []);
+      }
+    } catch {
+      console.error("Failed to fetch waitlist");
+    } finally {
+      setIsWaitlistLoading(false);
+    }
+  };
+
+  const handleLeaveWaitlist = async (id: string) => {
+    setLeavingWaitlistId(id);
+    try {
+      const res = await fetch(`/api/waitlist/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        fetchMyWaitlist();
+      }
+    } catch {
+      console.error("Failed to leave waitlist");
+    } finally {
+      setLeavingWaitlistId(null);
     }
   };
 
@@ -118,76 +171,140 @@ export function FacultyBookingTabs({ initialFacilities, isStudent = false }: Fac
       {activeTab === "book" ? (
         <BookingView initialFacilities={initialFacilities} isStudent={isStudent} />
       ) : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">My Booking Requests</h2>
-            <button
-              onClick={fetchMyBookings}
-              className="text-xs text-blue-600 hover:underline font-medium"
-            >
-              Refresh List
-            </button>
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">My Booking Requests</h2>
+              <button
+                onClick={() => {
+                  fetchMyBookings();
+                  if (!isStudent) fetchMyWaitlist();
+                }}
+                className="text-xs text-blue-600 hover:underline font-medium"
+              >
+                Refresh List
+              </button>
+            </div>
+
+            {errorMsg && (
+              <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {errorMsg}
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="p-8 text-center text-sm text-gray-500 bg-white rounded-lg border">
+                Loading your bookings...
+              </div>
+            ) : myBookings.length === 0 ? (
+              <div className="p-8 text-center text-sm text-gray-500 bg-white rounded-lg border border-dashed">
+                You have no booking records yet.
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+                <table className="w-full text-left text-sm text-gray-600">
+                  <thead className="bg-gray-50 text-xs uppercase text-gray-700 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-3 font-semibold">Facility</th>
+                      <th className="px-6 py-3 font-semibold">Date</th>
+                      <th className="px-6 py-3 font-semibold">Slot Time</th>
+                      <th className="px-6 py-3 font-semibold">Status</th>
+                      <th className="px-6 py-3 font-semibold text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {myBookings.map((b) => (
+                      <tr key={b.id} className="hover:bg-gray-50/50">
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-gray-900">{b.facility?.name || "Facility"}</div>
+                          <div className="text-xs text-gray-500">{b.facility?.location}</div>
+                        </td>
+                        <td className="px-6 py-4 font-medium text-gray-900">{b.date}</td>
+                        <td className="px-6 py-4">
+                          {formatTime(b.slotStart)} - {formatTime(b.slotEnd)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <Badge variant={getStatusBadgeVariant(b.status)}>
+                            {b.status.replace("_", " ")}
+                          </Badge>
+                          {b.rejectionReason && (
+                            <p className="mt-1 text-xs text-red-500 italic max-w-xs truncate">
+                              Rejection Reason: {b.rejectionReason}
+                            </p>
+                          )}
+                          {b.cancelReason && (
+                            <p className="mt-1 text-xs text-gray-500 italic max-w-xs truncate">
+                              Cancel Reason: {b.cancelReason}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <BookingActions booking={b} isAdmin={false} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
-          {errorMsg && (
-            <div className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              {errorMsg}
-            </div>
-          )}
+          {/* My Waitlist Sub-section */}
+          {!isStudent && (
+            <div className="space-y-4 pt-4 border-t border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900">My Waitlist Entries</h3>
 
-          {isLoading ? (
-            <div className="p-8 text-center text-sm text-gray-500 bg-white rounded-lg border">
-              Loading your bookings...
-            </div>
-          ) : myBookings.length === 0 ? (
-            <div className="p-8 text-center text-sm text-gray-500 bg-white rounded-lg border border-dashed">
-              You have no booking records yet.
-            </div>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-              <table className="w-full text-left text-sm text-gray-600">
-                <thead className="bg-gray-50 text-xs uppercase text-gray-700 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-3 font-semibold">Facility</th>
-                    <th className="px-6 py-3 font-semibold">Date</th>
-                    <th className="px-6 py-3 font-semibold">Slot Time</th>
-                    <th className="px-6 py-3 font-semibold">Status</th>
-                    <th className="px-6 py-3 font-semibold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {myBookings.map((b) => (
-                    <tr key={b.id} className="hover:bg-gray-50/50">
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-gray-900">{b.facility?.name || "Facility"}</div>
-                        <div className="text-xs text-gray-500">{b.facility?.location}</div>
-                      </td>
-                      <td className="px-6 py-4 font-medium text-gray-900">{b.date}</td>
-                      <td className="px-6 py-4">
-                        {formatTime(b.slotStart)} - {formatTime(b.slotEnd)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <Badge variant={getStatusBadgeVariant(b.status)}>
-                          {b.status.replace("_", " ")}
-                        </Badge>
-                        {b.rejectionReason && (
-                          <p className="mt-1 text-xs text-red-500 italic max-w-xs truncate">
-                            Rejection Reason: {b.rejectionReason}
-                          </p>
-                        )}
-                        {b.cancelReason && (
-                          <p className="mt-1 text-xs text-gray-500 italic max-w-xs truncate">
-                            Cancel Reason: {b.cancelReason}
-                          </p>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <BookingActions booking={b} isAdmin={false} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {isWaitlistLoading ? (
+                <div className="p-6 text-center text-sm text-gray-500 bg-white rounded-lg border">
+                  Loading waitlist entries...
+                </div>
+              ) : myWaitlist.length === 0 ? (
+                <div className="p-6 text-center text-sm text-gray-500 bg-white rounded-lg border border-dashed">
+                  You are not currently on any waitlist.
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
+                  <table className="w-full text-left text-sm text-gray-600">
+                    <thead className="bg-gray-50 text-xs uppercase text-gray-700 border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-3 font-semibold">Facility</th>
+                        <th className="px-6 py-3 font-semibold">Date</th>
+                        <th className="px-6 py-3 font-semibold">Slot Time</th>
+                        <th className="px-6 py-3 font-semibold">Waitlist Position</th>
+                        <th className="px-6 py-3 font-semibold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {myWaitlist.map((w) => (
+                        <tr key={w.id} className="hover:bg-gray-50/50">
+                          <td className="px-6 py-4">
+                            <div className="font-medium text-gray-900">
+                              {w.facility?.name || "Facility"}
+                            </div>
+                            <div className="text-xs text-gray-500">{w.facility?.location}</div>
+                          </td>
+                          <td className="px-6 py-4 font-medium text-gray-900">{w.date}</td>
+                          <td className="px-6 py-4">{formatTime(w.slotStart)}</td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800">
+                              #{w.position}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              disabled={leavingWaitlistId === w.id}
+                              onClick={() => handleLeaveWaitlist(w.id)}
+                              className="text-xs font-semibold text-rose-600 hover:text-rose-800 hover:underline disabled:opacity-50"
+                            >
+                              {leavingWaitlistId === w.id ? "Leaving..." : "Leave Waitlist"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </div>
