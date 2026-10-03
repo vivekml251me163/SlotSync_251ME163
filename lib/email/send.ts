@@ -57,7 +57,7 @@ export async function sendEmail(payload: EmailPayload): Promise<void> {
     const html = await render(component);
 
     await resend.emails.send({
-      from: "SlotSync <noreply@yourdomain.com>",
+      from: process.env.RESEND_FROM_EMAIL!,
       to: payload.to,
       subject,
       html,

@@ -65,7 +65,8 @@ function getTypeBadge(type?: string) {
 }
 
 interface MyBookingsTableProps {
-  onCountsUpdate?: (activeCount: number) => void;
+  /** Called after data loads. activeCount = PENDING+APPROVED+CANCELLATION_REQUESTED */
+  onCountsUpdate?: (activeCount: number, approvedCount: number, pendingCount: number) => void;
 }
 
 export function MyBookingsTable({ onCountsUpdate }: MyBookingsTableProps) {
@@ -91,7 +92,9 @@ export function MyBookingsTable({ onCountsUpdate }: MyBookingsTableProps) {
         const activeCount = list.filter((b: UserBooking) =>
           ["PENDING", "APPROVED", "CANCELLATION_REQUESTED"].includes(b.status)
         ).length;
-        if (onCountsUpdate) onCountsUpdate(activeCount);
+        const approvedCount = list.filter((b: UserBooking) => b.status === "APPROVED").length;
+        const pendingCount = list.filter((b: UserBooking) => b.status === "PENDING").length;
+        if (onCountsUpdate) onCountsUpdate(activeCount, approvedCount, pendingCount);
       }
     } catch {
       console.error("Failed to fetch user bookings");

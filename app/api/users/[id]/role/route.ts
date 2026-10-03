@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 const updateUserRoleSchema = z.object({
-  roleId: z.string().cuid(),
+  roleId: z.string().min(1),
 });
 
 export async function PUT(

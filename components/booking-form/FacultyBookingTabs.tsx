@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Facility } from "@/lib/db/schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FacilitySelector } from "./FacilitySelector";
@@ -13,6 +13,10 @@ interface FacultyBookingTabsProps {
   initialFacilities: Facility[];
   isStudent?: boolean;
   isReadOnly?: boolean;
+  /** Called when MyBookingsTable loads — provides approved + pending counts */
+  onBookingsCountUpdate?: (approved: number, pending: number) => void;
+  /** Called when MyWaitlistTable loads — provides waitlist count */
+  onWaitlistCountUpdate?: (count: number) => void;
 }
 
 interface CountData {
@@ -24,40 +28,15 @@ export function FacultyBookingTabs({
   initialFacilities,
   isStudent = false,
   isReadOnly = false,
+  onBookingsCountUpdate,
+  onWaitlistCountUpdate,
 }: FacultyBookingTabsProps) {
   const readOnly = isStudent || isReadOnly;
 
   const [selectedFacilityId, setSelectedFacilityId] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
+  // Tab badge counts — updated by child tables when they load data
   const [counts, setCounts] = useState<CountData>({ activeBookings: 0, waitlistEntries: 0 });
-
-  // Fetch counts for tab badges on mount
-  useEffect(() => {
-    if (readOnly) return;
-    fetchCounts();
-  }, [readOnly]);
-
-  const fetchCounts = async () => {
-    try {
-      const [bookingsRes, waitlistRes] = await Promise.all([
-        fetch("/api/bookings"),
-        fetch("/api/waitlist"),
-      ]);
-      const bookingsData = bookingsRes.ok ? await bookingsRes.json() : [];
-      const waitlistData = waitlistRes.ok ? await waitlistRes.json() : [];
-
-      const activeBookings = Array.isArray(bookingsData)
-        ? bookingsData.filter((b: { status: string }) =>
-            ["APPROVED", "PENDING", "CANCELLATION_REQUESTED"].includes(b.status)
-          ).length
-        : 0;
-      const waitlistEntries = Array.isArray(waitlistData) ? waitlistData.length : 0;
-
-      setCounts({ activeBookings, waitlistEntries });
-    } catch {
-      // silently ignore
-    }
-  };
 
   const selectedFacility = initialFacilities.find((f) => f.id === selectedFacilityId) ?? null;
   const canShowGrid = selectedFacilityId !== "" && selectedDate !== "";
@@ -184,14 +163,24 @@ export function FacultyBookingTabs({
       {/* ─── My Bookings ─────────────────────────────────────── */}
       {!readOnly && (
         <TabsContent value="my-bookings" className="mt-6 outline-none">
-          <MyBookingsTable onCountsUpdate={(count) => setCounts((prev) => ({ ...prev, activeBookings: count }))} />
+          <MyBookingsTable
+            onCountsUpdate={(activeCount, approvedCount, pendingCount) => {
+              setCounts((prev) => ({ ...prev, activeBookings: activeCount }));
+              onBookingsCountUpdate?.(approvedCount, pendingCount);
+            }}
+          />
         </TabsContent>
       )}
 
       {/* ─── My Waitlist ─────────────────────────────────────── */}
       {!readOnly && (
         <TabsContent value="my-waitlist" className="mt-6 outline-none">
-          <MyWaitlistTable onCountsUpdate={(count) => setCounts((prev) => ({ ...prev, waitlistEntries: count }))} />
+          <MyWaitlistTable
+            onCountsUpdate={(count) => {
+              setCounts((prev) => ({ ...prev, waitlistEntries: count }));
+              onWaitlistCountUpdate?.(count);
+            }}
+          />
         </TabsContent>
       )}
     </Tabs>

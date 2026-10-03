@@ -10,6 +10,7 @@ import {
   Heading,
   Hr,
 } from "@react-email/components";
+import { formatDate, formatTime } from "@/lib/utils";
 
 export interface SlotReminderProps {
   userName: string;
@@ -45,8 +46,8 @@ export function SlotReminder({
           <Section style={{ backgroundColor: "#ebf8ff", borderRadius: "6px", padding: "16px" }}>
             <Text style={{ margin: "4px 0", color: "#2c5282" }}><strong>Facility:</strong> {facilityName}</Text>
             <Text style={{ margin: "4px 0", color: "#2c5282" }}><strong>Location:</strong> {location}</Text>
-            <Text style={{ margin: "4px 0", color: "#2c5282" }}><strong>Date:</strong> {date}</Text>
-            <Text style={{ margin: "4px 0", color: "#2c5282" }}><strong>Start Time:</strong> {slotStart}</Text>
+            <Text style={{ margin: "4px 0", color: "#2c5282" }}><strong>Date:</strong> {formatDate(date)}</Text>
+            <Text style={{ margin: "4px 0", color: "#2c5282" }}><strong>Start Time:</strong> {formatTime(slotStart)}</Text>
           </Section>
         </Container>
       </Body>

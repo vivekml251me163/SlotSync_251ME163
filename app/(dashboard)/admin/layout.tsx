@@ -2,7 +2,6 @@ import React from "react";
 import { requireRole, ADMIN } from "@/lib/permissions";
 import { NextResponse } from "next/server";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
-import { Building2, CalendarCheck, BarChart3, ShieldCheck } from "lucide-react";
 
 export default async function AdminLayout({
   children,
@@ -17,10 +16,10 @@ export default async function AdminLayout({
   const user = authResult;
 
   const adminNavItems = [
-    { label: "Facilities", href: "/admin/facilities", icon: Building2 },
-    { label: "Bookings", href: "/admin/bookings", icon: CalendarCheck },
-    { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-    { label: "Roles", href: "/admin/roles", icon: ShieldCheck },
+    { label: "Facilities", href: "/admin/facilities", icon: "Building2" },
+    { label: "Bookings", href: "/admin/bookings", icon: "CalendarCheck" },
+    { label: "Analytics", href: "/admin/analytics", icon: "BarChart3" },
+    { label: "Roles", href: "/admin/roles", icon: "ShieldCheck" },
   ];
 
   return (

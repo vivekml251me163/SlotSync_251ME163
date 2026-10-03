@@ -2,7 +2,6 @@ import React from "react";
 import { requireRole, FACULTY_OR_ABOVE } from "@/lib/permissions";
 import { NextResponse } from "next/server";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
-import { CalendarDays } from "lucide-react";
 
 export default async function FacultyLayout({
   children,
@@ -17,7 +16,7 @@ export default async function FacultyLayout({
   const user = authResult;
 
   const facultyNavItems = [
-    { label: "Bookings", href: "/faculty/bookings", icon: CalendarDays },
+    { label: "Bookings", href: "/faculty/bookings", icon: "CalendarDays" },
   ];
 
   return (

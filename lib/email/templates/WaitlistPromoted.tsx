@@ -10,6 +10,7 @@ import {
   Heading,
   Hr,
 } from "@react-email/components";
+import { formatDate, formatTime } from "@/lib/utils";
 
 export interface WaitlistPromotedProps {
   userName: string;
@@ -44,8 +45,8 @@ export function WaitlistPromoted({
           <Hr style={{ borderColor: "#e2e8f0", margin: "20px 0" }} />
           <Section style={{ backgroundColor: "#f0fff4", borderRadius: "6px", padding: "16px" }}>
             <Text style={{ margin: "4px 0", color: "#22543d" }}><strong>Facility:</strong> {facilityName}</Text>
-            <Text style={{ margin: "4px 0", color: "#22543d" }}><strong>Date:</strong> {date}</Text>
-            <Text style={{ margin: "4px 0", color: "#22543d" }}><strong>Time:</strong> {slotStart} - {slotEnd}</Text>
+            <Text style={{ margin: "4px 0", color: "#22543d" }}><strong>Date:</strong> {formatDate(date)}</Text>
+            <Text style={{ margin: "4px 0", color: "#22543d" }}><strong>Time:</strong> {formatTime(slotStart)} - {formatTime(slotEnd)}</Text>
             <Text style={{ margin: "4px 0", color: "#22543d" }}><strong>Status:</strong> CONFIRMED</Text>
           </Section>
           <Text style={{ color: "#718096", fontSize: "14px", marginTop: "24px" }}>

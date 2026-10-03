@@ -10,6 +10,7 @@ import {
   Heading,
   Hr,
 } from "@react-email/components";
+import { formatDate, formatTime } from "@/lib/utils";
 
 export interface BookingCancelledProps {
   userName: string;
@@ -41,7 +42,7 @@ export function BookingCancelled({
             Hello {userName},
           </Text>
           <Text style={{ color: "#4a5568", fontSize: "16px", lineHeight: "24px" }}>
-            Your booking for <strong>{facilityName}</strong> on {date} ({slotStart} - {slotEnd}) has been cancelled.
+            Your booking for <strong>{facilityName}</strong> on {formatDate(date)} ({formatTime(slotStart)} - {formatTime(slotEnd)}) has been cancelled.
           </Text>
           {cancelReason && (
             <>

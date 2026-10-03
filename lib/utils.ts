@@ -36,10 +36,19 @@ export function formatDate(iso: string | Date): string {
 
 export function formatTime(iso: string | Date): string {
   try {
-    const d = new Date(iso);
+    let d = typeof iso === "string" ? new Date(iso) : iso;
+    if (isNaN(d.getTime()) && typeof iso === "string") {
+      const trimmed = iso.trim();
+      if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+        const parts = trimmed.split(":");
+        const hh = parts[0].padStart(2, "0");
+        const mm = parts[1];
+        d = new Date(`2000-01-01T${hh}:${mm}:00.000Z`);
+      }
+    }
     if (isNaN(d.getTime())) return String(iso);
-    return d.toLocaleTimeString([], {
-      hour: "2-digit",
+    return d.toLocaleTimeString("en-US", {
+      hour: "numeric",
       minute: "2-digit",
       hour12: true,
       timeZone: "UTC",

@@ -10,6 +10,7 @@ import {
   Heading,
   Hr,
 } from "@react-email/components";
+import { formatDate, formatTime } from "@/lib/utils";
 
 export interface BookingApprovedProps {
   userName: string;
@@ -44,8 +45,8 @@ export function BookingApproved({
           <Hr style={{ borderColor: "#e2e8f0", margin: "20px 0" }} />
           <Section style={{ backgroundColor: "#ebf8ff", borderRadius: "6px", padding: "16px" }}>
             <Text style={{ margin: "4px 0", color: "#2c5282" }}><strong>Facility:</strong> {facilityName}</Text>
-            <Text style={{ margin: "4px 0", color: "#2c5282" }}><strong>Date:</strong> {date}</Text>
-            <Text style={{ margin: "4px 0", color: "#2c5282" }}><strong>Time:</strong> {slotStart} - {slotEnd}</Text>
+            <Text style={{ margin: "4px 0", color: "#2c5282" }}><strong>Date:</strong> {formatDate(date)}</Text>
+            <Text style={{ margin: "4px 0", color: "#2c5282" }}><strong>Time:</strong> {formatTime(slotStart)} - {formatTime(slotEnd)}</Text>
           </Section>
           <Text style={{ color: "#718096", fontSize: "14px", marginTop: "24px" }}>
             Please arrive on time. You will receive a reminder 30 minutes before your slot begins.

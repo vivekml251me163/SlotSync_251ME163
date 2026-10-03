@@ -4,12 +4,12 @@ import { db } from "@/lib/db";
 import { bookings, penalties, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-export const sendSlotReminder = (inngest.createFunction as any)(
+export const sendSlotReminder = inngest.createFunction(
   {
     id: "send-slot-reminder",
     cancelOn: [{ event: "booking/cancelled", match: "data.bookingId" }],
+    triggers: [{ event: "booking/approved" }],
   },
-  { event: "booking/approved" },
   async ({ event, step }: { event: any; step: any }) => {
     const { bookingId, slotStart, userEmail, userName, facilityName, facilityLocation, date } = event.data;
     const reminderTime = new Date(new Date(slotStart).getTime() - 30 * 60 * 1000);
@@ -32,9 +32,11 @@ export const sendSlotReminder = (inngest.createFunction as any)(
   }
 );
 
-export const promoteWaitlistNotifier = (inngest.createFunction as any)(
-  { id: "waitlist-promoted-notifier" },
-  { event: "waitlist/promoted" },
+export const promoteWaitlistNotifier = inngest.createFunction(
+  {
+    id: "waitlist-promoted-notifier",
+    triggers: [{ event: "waitlist/promoted" }],
+  },
   async ({ event, step }: { event: any; step: any }) => {
     await step.run("send-promotion-email", async () => {
       await sendEmail({
@@ -52,9 +54,11 @@ export const promoteWaitlistNotifier = (inngest.createFunction as any)(
   }
 );
 
-export const detectNoShow = (inngest.createFunction as any)(
-  { id: "detect-no-show" },
-  { event: "booking/approved" },
+export const detectNoShow = inngest.createFunction(
+  {
+    id: "detect-no-show",
+    triggers: [{ event: "booking/approved" }],
+  },
   async ({ event, step }: { event: any; step: any }) => {
     const { bookingId, slotEnd } = event.data;
 

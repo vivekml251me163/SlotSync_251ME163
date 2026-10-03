@@ -3,13 +3,30 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { LogOut } from "lucide-react";
+import {
+  LogOut,
+  Search,
+  Building2,
+  CalendarCheck,
+  BarChart3,
+  ShieldCheck,
+  CalendarDays,
+} from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
+
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  Search,
+  Building2,
+  CalendarCheck,
+  BarChart3,
+  ShieldCheck,
+  CalendarDays,
+};
 
 export interface NavItem {
   label: string;
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: string | React.ComponentType<{ className?: string }>;
 }
 
 interface DashboardSidebarProps {
@@ -41,7 +58,10 @@ export function DashboardSidebar({
       {/* Navigation Links */}
       <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
         {navItems.map((item) => {
-          const Icon = item.icon;
+          const Icon =
+            typeof item.icon === "string"
+              ? iconMap[item.icon] || Search
+              : item.icon;
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           return (

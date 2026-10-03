@@ -10,6 +10,7 @@ import {
   Heading,
   Hr,
 } from "@react-email/components";
+import { formatDate, formatTime } from "@/lib/utils";
 
 export interface BookingRejectedProps {
   userName: string;
@@ -41,7 +42,7 @@ export function BookingRejected({
             Hello {userName},
           </Text>
           <Text style={{ color: "#4a5568", fontSize: "16px", lineHeight: "24px" }}>
-            Unfortunately, your booking request for <strong>{facilityName}</strong> on {date} ({slotStart} - {slotEnd}) was rejected by an administrator.
+            Unfortunately, your booking request for <strong>{facilityName}</strong> on {formatDate(date)} ({formatTime(slotStart)} - {formatTime(slotEnd)}) was rejected by an administrator.
           </Text>
           <Hr style={{ borderColor: "#e2e8f0", margin: "20px 0" }} />
           <Section style={{ backgroundColor: "#fff5f5", borderRadius: "6px", padding: "16px" }}>

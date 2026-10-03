@@ -10,6 +10,7 @@ import {
   Heading,
   Hr,
 } from "@react-email/components";
+import { formatDate, formatTime } from "@/lib/utils";
 
 export interface BookingConfirmationProps {
   userName: string;
@@ -47,8 +48,8 @@ export function BookingConfirmation({
           <Section style={{ backgroundColor: "#f7fafc", borderRadius: "6px", padding: "16px" }}>
             <Text style={{ margin: "4px 0", color: "#2d3748" }}><strong>Booking ID:</strong> {bookingId}</Text>
             <Text style={{ margin: "4px 0", color: "#2d3748" }}><strong>Facility:</strong> {facilityName}</Text>
-            <Text style={{ margin: "4px 0", color: "#2d3748" }}><strong>Date:</strong> {date}</Text>
-            <Text style={{ margin: "4px 0", color: "#2d3748" }}><strong>Time:</strong> {slotStart} - {slotEnd}</Text>
+            <Text style={{ margin: "4px 0", color: "#2d3748" }}><strong>Date:</strong> {formatDate(date)}</Text>
+            <Text style={{ margin: "4px 0", color: "#2d3748" }}><strong>Time:</strong> {formatTime(slotStart)} - {formatTime(slotEnd)}</Text>
           </Section>
           <Text style={{ color: "#718096", fontSize: "14px", marginTop: "24px" }}>
             You will receive another notification once an administrator reviews your request.

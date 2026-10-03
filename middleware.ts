@@ -5,6 +5,11 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Inngest needs to access this endpoint without user authentication
+  if (pathname.startsWith("/api/inngest")) {
+    return NextResponse.next();
+  }
+
   // Public routes (no auth needed)
   if (
     pathname === "/login" ||
