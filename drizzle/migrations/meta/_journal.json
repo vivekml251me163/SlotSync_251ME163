@@ -15,6 +15,13 @@
       "when": 1790914723941,
       "tag": "0001_daffy_infant_terrible",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791010689508,
+      "tag": "0002_aromatic_masque",
+      "breakpoints": true
     }
   ]
 }

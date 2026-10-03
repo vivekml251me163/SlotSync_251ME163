@@ -11,7 +11,7 @@ import {
   boolean,
   primaryKey,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
 // Enums
@@ -80,11 +80,9 @@ export const bookings = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
-    bookingOverlapIdx: uniqueIndex("booking_overlap_idx").on(
-      table.facilityId,
-      table.date,
-      table.slotStart
-    ),
+    bookingOverlapIdx: uniqueIndex("booking_overlap_idx")
+      .on(table.facilityId, table.date, table.slotStart)
+      .where(sql`status = 'APPROVED'`),
     bookingUserDateIdx: index("booking_user_date_idx").on(table.userId, table.date),
   })
 );

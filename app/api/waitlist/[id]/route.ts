@@ -44,7 +44,7 @@ export async function DELETE(
         FROM (
           SELECT id, ROW_NUMBER() OVER (ORDER BY "created_at" ASC) as rn
           FROM waitlist
-          WHERE "facility_id" = ${facilityId} AND date = ${date} AND "slot_start" = ${slotStart}
+          WHERE "facility_id" = ${facilityId} AND date = ${date} AND "slot_start" = ${slotStart.toISOString()}
         ) sub
         WHERE waitlist.id = sub.id
       `);
