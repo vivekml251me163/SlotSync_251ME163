@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { UserRole } from "@/lib/db/schema";
 
 export const authConfig: NextAuthConfig = {
   providers: [
@@ -50,16 +51,19 @@ export const authConfig: NextAuthConfig = {
   },
   callbacks: {
     async jwt({ token, user }) {
+      const t = token as any;
       if (user) {
-        token.id = user.id as string;
-        token.role = user.role;
+        const u = user as any;
+        t.id = u.id as string;
+        t.role = u.role as UserRole;
       }
-      return token;
+      return t as typeof token;
     },
     async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
+      const t = token as any;
+      if (t && session.user) {
+        session.user.id = t.id as string;
+        session.user.role = t.role as UserRole;
       }
       return session;
     },
