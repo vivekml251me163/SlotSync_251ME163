@@ -19,7 +19,6 @@ export default async function AdminLayout({
     { label: "Facilities", href: "/admin/facilities", icon: "Building2" },
     { label: "Bookings", href: "/admin/bookings", icon: "CalendarCheck" },
     { label: "Analytics", href: "/admin/analytics", icon: "BarChart3" },
-    { label: "Roles", href: "/admin/roles", icon: "ShieldCheck" },
   ];
 
   return (
