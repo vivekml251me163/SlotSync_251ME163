@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { auth } from "@/lib/auth";
 
-export async function proxy(req: NextRequest) {
+async function handler(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Inngest needs to access this endpoint without user authentication
@@ -22,13 +22,13 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
+  // `auth` augments the request with `req.auth`. Support both shapes
+  // (user or token) for compatibility.
+  const authData: any = (req as any).auth ?? null;
+  const sessionOrToken = authData?.user ?? authData?.token ?? authData ?? null;
 
-  // If no token exists
-  if (!token) {
+  // If no session/token exists
+  if (!sessionOrToken) {
     // API routes return 401 JSON response instead of redirect
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -41,7 +41,7 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const userRole = (token.role as string) || "";
+  const userRole = (sessionOrToken.role as string) || "";
 
   // Prefix-based role guards
   if (pathname.startsWith("/admin")) {
@@ -59,6 +59,8 @@ export async function proxy(req: NextRequest) {
 
   return NextResponse.next();
 }
+
+export default auth(handler);
 
 export const config = {
   matcher: [

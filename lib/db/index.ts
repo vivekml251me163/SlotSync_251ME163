@@ -9,7 +9,10 @@ declare global {
   var dbPool: postgres.Sql | undefined;
 }
 
-const client = globalThis.dbPool ?? postgres(connectionString!, { max: 10 });
+const client = globalThis.dbPool ?? postgres(connectionString!, { 
+  max: 10,
+  prepare: false 
+});
 
 if (process.env.NODE_ENV !== "production") {
   globalThis.dbPool = client;
