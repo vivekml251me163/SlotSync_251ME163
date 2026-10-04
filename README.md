@@ -6,21 +6,17 @@ SlotSync is a campus booking platform for managing facility reservations, approv
 
 ### Video Recording
 
-Paste the demo recording link here once it is uploaded:
 
-`https://your-video-link-here`
+[DEMO VIDEO : https://drive.google.com/file/d/1SIOGsORwtDpHwsvF3CJ-WYtP6xT9K0ro/view?usp=sharing](https://drive.google.com/file/d/1SIOGsORwtDpHwsvF3CJ-WYtP6xT9K0ro/view?usp=sharing)
 
 ### Screenshots
 
-Add your screenshots below after capturing the app in key states.
 
 | Screen | Image |
 | --- | --- |
-| Landing page | Add screenshot here |
-| Login | Add screenshot here |
-| Student dashboard | Add screenshot here |
-| Faculty booking flow | Add screenshot here |
-| Admin analytics | Add screenshot here |
+| Login | <img width="1899" height="1029" alt="image" src="https://github.com/user-attachments/assets/d8bd8c64-f0e3-4fb3-9a12-b7e32d1e3a44" />|
+| Faculty booking flow | <img width="1899" height="1029" alt="image" src="https://github.com/user-attachments/assets/c7afa82b-eca6-42c9-9aa3-3a2cdcf69d91" />|
+| Admin analytics | <img width="1904" height="1032" alt="image" src="https://github.com/user-attachments/assets/43deb9a9-3323-4cd9-9b17-8943df64c6b3" />|
 
 ## Features
 
