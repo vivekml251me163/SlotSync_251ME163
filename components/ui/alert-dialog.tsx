@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
@@ -18,19 +18,13 @@ export interface AlertDialogProps {
 
 export function AlertDialog({ open: controlledOpen, onOpenChange, children }: AlertDialogProps) {
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
-
   const open = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen;
   const setOpen = React.useCallback(
     (value: boolean) => {
-      if (onOpenChange) {
-        onOpenChange(value);
-      } else {
-        setUncontrolledOpen(value);
-      }
+      if (onOpenChange) { onOpenChange(value); } else { setUncontrolledOpen(value); }
     },
     [onOpenChange]
   );
-
   return (
     <AlertDialogContext.Provider value={{ open, onOpenChange: setOpen }}>
       {children}
@@ -38,24 +32,21 @@ export function AlertDialog({ open: controlledOpen, onOpenChange, children }: Al
   );
 }
 
-export function AlertDialogContent({
-  children,
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+export function AlertDialogContent({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   const context = React.useContext(AlertDialogContext);
-
   if (!context?.open) return null;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/70 backdrop-blur-md"
         onClick={() => context.onOpenChange(false)}
       />
       <div
         className={cn(
-          "relative z-50 w-full max-w-md rounded-lg bg-white p-6 shadow-lg border border-gray-200",
+          "relative z-50 w-full max-w-md rounded-2xl border border-white/[0.08]",
+          "bg-[#14162A] p-6",
+          "shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_24px_80px_rgba(0,0,0,0.6)]",
+          "animate-fade-up",
           className
         )}
         {...props}
@@ -71,34 +62,35 @@ export function AlertDialogHeader({ className, ...props }: React.HTMLAttributes<
 }
 
 export function AlertDialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h2 className={cn("text-lg font-semibold text-gray-900", className)} {...props} />;
+  return (
+    <h2 className={cn("font-display text-lg font-semibold text-foreground", className)} {...props} />
+  );
 }
 
 export function AlertDialogDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-sm text-gray-500", className)} {...props} />;
+  return <p className={cn("text-sm text-muted-foreground leading-relaxed", className)} {...props} />;
 }
 
 export function AlertDialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex justify-end space-x-2 mt-6", className)} {...props} />;
+  return (
+    <div
+      className={cn("flex justify-end gap-2 mt-6 pt-4 border-t border-white/[0.06]", className)}
+      {...props}
+    />
+  );
 }
 
-export function AlertDialogCancel({
-  children,
-  onClick,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+export function AlertDialogCancel({ children, onClick, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const context = React.useContext(AlertDialogContext);
-
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     onClick?.(e);
     context?.onOpenChange(false);
   };
-
   return (
     <button
       type="button"
       onClick={handleClick}
-      className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+      className="inline-flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-white/[0.07] hover:text-foreground transition-all duration-200"
       {...props}
     >
       {children || "Cancel"}
@@ -106,26 +98,21 @@ export function AlertDialogCancel({
   );
 }
 
-export function AlertDialogAction({
-  children,
-  onClick,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+export function AlertDialogAction({ children, onClick, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const context = React.useContext(AlertDialogContext);
-
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     onClick?.(e);
     context?.onOpenChange(false);
   };
-
   return (
     <button
       type="button"
       onClick={handleClick}
-      className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+      className="inline-flex items-center justify-center rounded-lg bg-[#8B5CF6] hover:bg-[#9D72F8] px-4 py-2 text-sm font-semibold text-white glow-accent transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
       {...props}
     >
       {children || "Confirm"}
     </button>
   );
 }
+

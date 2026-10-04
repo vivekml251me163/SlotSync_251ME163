@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { FacultyBookingTabs } from "@/components/booking-form/FacultyBookingTabs";
 import { CalendarCheck, Clock, ListOrdered } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,93 +14,102 @@ export default function FacultyBookingsClient({ isStudent }: FacultyBookingsClie
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Stat strip counts — updated reactively via callbacks from MyBookingsTable / MyWaitlistTable
+  // Counts — fetched independently so stats show immediately on page load
   const [approvedCount, setApprovedCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [waitlistCount, setWaitlistCount] = useState(0);
 
+  // Fetch counts directly (not from tab children)
+  const fetchCounts = useCallback(async () => {
+    try {
+      const [bookingsRes, waitlistRes] = await Promise.all([
+        fetch("/api/bookings/my"),
+        fetch("/api/waitlist/my"),
+      ]);
+      if (bookingsRes.ok) {
+        const bookings = await bookingsRes.json();
+        setApprovedCount(
+          bookings.filter((b: any) => b.status === "APPROVED").length
+        );
+        setPendingCount(
+          bookings.filter((b: any) => b.status === "PENDING").length
+        );
+      }
+      if (waitlistRes.ok) {
+        const waitlist = await waitlistRes.json();
+        setWaitlistCount(Array.isArray(waitlist) ? waitlist.length : 0);
+      }
+    } catch (err) {
+      console.error("Failed to fetch counts:", err);
+    }
+  }, []);
+
   useEffect(() => {
-    async function loadFacilities() {
+    async function init() {
       try {
         const res = await fetch("/api/facilities");
-        if (res.ok) {
-          setFacilities(await res.json());
-        }
+        if (res.ok) setFacilities(await res.json());
       } catch (err) {
         console.error("Failed to fetch facilities:", err);
       } finally {
         setLoading(false);
       }
     }
-    loadFacilities();
-  }, []);
+    init();
+    if (!isStudent) fetchCounts();
+  }, [isStudent, fetchCounts]);
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-12 w-full rounded-xl bg-card border border-border" />
-        <Skeleton className="h-96 w-full rounded-xl bg-card" />
+      <div className="space-y-4 animate-fade-up">
+        <Skeleton className="h-12 w-full rounded-2xl bg-white/[0.04] border border-white/[0.06]" />
+        <Skeleton className="h-96 w-full rounded-2xl bg-white/[0.03]" />
       </div>
     );
   }
 
+  const stats = [
+    { label: "Active Bookings", value: approvedCount, icon: CalendarCheck, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+    { label: "Pending Requests", value: pendingCount, icon: Clock, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+    { label: "Waitlist Entries", value: waitlistCount, icon: ListOrdered, color: "text-primary", bg: "bg-primary/10", border: "border-primary/20" },
+  ];
+
   return (
-    <div className="space-y-8">
-      {/* Page Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
+    <div className="space-y-7 animate-fade-up">
+      {/* ── Page Header ── */}
+      <div>
+        <p className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-2">
+          {isStudent ? "Student" : "Faculty"} / Bookings
+        </p>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">
           Bookings
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
           Reserve campus facilities and track your requests.
         </p>
       </div>
 
-      {/* Stat Strip — counts updated via child onCountsUpdate callbacks */}
+      {/* ── Stat Strip — fetched on mount, updated reactively via tab callbacks ── */}
       {!isStudent && (
-        <div className="flex flex-wrap gap-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
-              <CalendarCheck className="h-4 w-4" />
+        <div className="flex flex-wrap gap-3">
+          {stats.map(({ label, value, icon: Icon, color, bg, border }) => (
+            <div
+              key={label}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.05] to-white/[0.02] glow-card"
+            >
+              <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${bg} border ${border}`}>
+                <Icon className={`h-4 w-4 ${color}`} />
+              </div>
+              <div>
+                <p className={`font-display text-xl font-semibold leading-none ${color}`}>{value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+              </div>
             </div>
-            <div>
-              <p className="font-display text-xl font-semibold text-foreground leading-none">
-                {approvedCount}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">Active Bookings</p>
-            </div>
-          </div>
-
-          <div className="w-px h-8 self-center bg-border" />
-
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
-              <Clock className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="font-display text-xl font-semibold text-foreground leading-none">
-                {pendingCount}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">Pending Requests</p>
-            </div>
-          </div>
-
-          <div className="w-px h-8 self-center bg-border" />
-
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <ListOrdered className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="font-display text-xl font-semibold text-foreground leading-none">
-                {waitlistCount}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">Waitlist Entries</p>
-            </div>
-          </div>
+          ))}
         </div>
       )}
 
+      {/* ── Booking Tabs — callbacks keep stats in sync after tab interactions ── */}
       <FacultyBookingTabs
         initialFacilities={facilities}
         isStudent={isStudent}

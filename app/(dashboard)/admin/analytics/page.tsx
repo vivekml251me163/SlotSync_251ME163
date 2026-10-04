@@ -1,4 +1,4 @@
-import { requireRole, ADMIN } from "@/lib/permissions";
+﻿import { requireRole, ADMIN } from "@/lib/permissions";
 import { NextResponse } from "next/server";
 import React from "react";
 import AnalyticsClient from "./AnalyticsClient";
@@ -13,3 +13,4 @@ export default async function AnalyticsPage() {
 
   return <AnalyticsClient />;
 }
+

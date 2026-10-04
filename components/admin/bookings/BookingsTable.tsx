@@ -91,6 +91,7 @@ export function BookingsTable({ bookings, onRefresh }: BookingsTableProps) {
   const [expanded, setExpanded] = useState({});
 
   const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
+  const [facilityFilter, setFacilityFilter] = useState<string>("ALL");
   const [toastMsg, setToastMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Extract unique facilities for filter dropdown
@@ -107,19 +108,21 @@ export function BookingsTable({ bookings, onRefresh }: BookingsTableProps) {
     let count = 0;
     if (globalFilter.trim()) count++;
     if (dateFilter) count++;
+    if (facilityFilter && facilityFilter !== "ALL") count++;
     columnFilters.forEach((f) => {
       if (f.value && f.value !== "ALL") count++;
     });
     return count;
-  }, [globalFilter, dateFilter, columnFilters]);
+  }, [globalFilter, dateFilter, facilityFilter, columnFilters]);
 
   const clearAllFilters = () => {
     setGlobalFilter("");
     setDateFilter(undefined);
+    setFacilityFilter("ALL");
     setColumnFilters([]);
   };
 
-  // Custom filter logic incorporating Date Picker
+  // Custom filter logic incorporating Date Picker and Facility filter
   const filteredData = useMemo(() => {
     return bookings.filter((b) => {
       if (dateFilter) {
@@ -129,9 +132,12 @@ export function BookingsTable({ bookings, onRefresh }: BookingsTableProps) {
         const selectedDateStr = `${year}-${month}-${day}`;
         if (b.date !== selectedDateStr) return false;
       }
+      if (facilityFilter && facilityFilter !== "ALL") {
+        if (b.facilityId !== facilityFilter) return false;
+      }
       return true;
     });
-  }, [bookings, dateFilter]);
+  }, [bookings, dateFilter, facilityFilter]);
 
   const columns = useMemo<ColumnDef<BookingWithRelations>[]>(
     () => [
@@ -289,7 +295,6 @@ export function BookingsTable({ bookings, onRefresh }: BookingsTableProps) {
   });
 
   const statusFilterValue = (table.getColumn("status")?.getFilterValue() as string) || "ALL";
-  const facilityFilterValue = (table.getColumn("facilityId")?.getFilterValue() as string) || "ALL";
 
   return (
     <div className="space-y-4">
@@ -355,10 +360,8 @@ export function BookingsTable({ bookings, onRefresh }: BookingsTableProps) {
 
           {/* Facility Filter */}
           <Select
-            value={facilityFilterValue}
-            onValueChange={(val) =>
-              table.getColumn("facilityId")?.setFilterValue(val === "ALL" ? undefined : val)
-            }
+            value={facilityFilter}
+            onValueChange={(val) => setFacilityFilter(val)}
           >
             <SelectTrigger className="w-[160px] bg-background border-border text-xs">
               <SelectValue placeholder="All Facilities" />

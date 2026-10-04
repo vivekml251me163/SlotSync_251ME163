@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
@@ -269,3 +269,4 @@ export function AnalyticsDashboard() {
     </div>
   );
 }
+

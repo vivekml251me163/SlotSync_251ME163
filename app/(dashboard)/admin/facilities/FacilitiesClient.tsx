@@ -1,8 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { FacilitiesTable } from "@/components/admin/facilities/FacilitiesTable";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Building2, CheckCircle2, Wrench, Users, RefreshCw } from "lucide-react";
 import { Facility } from "@/lib/db/schema";
@@ -26,10 +25,7 @@ export default function AdminFacilitiesClient() {
     }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
+  useEffect(() => { loadData(); }, [loadData]);
   useEffect(() => {
     const onFocus = () => loadData();
     window.addEventListener("focus", onFocus);
@@ -38,11 +34,11 @@ export default function AdminFacilitiesClient() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-16 w-full rounded-xl bg-card border border-border" />
+      <div className="space-y-4 animate-fade-up">
+        <Skeleton className="h-16 w-full rounded-2xl bg-white/[0.04] border border-white/[0.06]" />
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-lg bg-card" />
+            <Skeleton key={i} className="h-14 w-full rounded-xl bg-white/[0.03]" />
           ))}
         </div>
       </div>
@@ -54,22 +50,32 @@ export default function AdminFacilitiesClient() {
   const maintenanceCount = facilities.filter((f) => f.status === "UNDER_MAINTENANCE").length;
   const totalSeats = facilities.reduce((sum, f) => sum + (f.capacity || 0), 0);
 
+  const stats = [
+    { label: "Total", value: totalFacilities, icon: Building2, color: "text-primary", bg: "bg-primary/10", border: "border-primary/20" },
+    { label: "Available", value: availableCount, icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+    { label: "Maintenance", value: maintenanceCount, icon: Wrench, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+    { label: "Total Seats", value: totalSeats, icon: Users, color: "text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/20" },
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-7 animate-fade-up">
+      {/* ── Page Header ── */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
+          <p className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-2">
+            Admin / Facilities
+          </p>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">
             Facilities
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
             Manage campus infrastructure, opening hours, and operational status.
           </p>
         </div>
         <button
           onClick={loadData}
           disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-card border border-border hover:bg-accent hover:text-foreground text-muted-foreground transition-colors disabled:opacity-50 shrink-0 mt-1"
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.06] text-muted-foreground hover:text-foreground transition-all duration-200 disabled:opacity-50 shrink-0 mt-6"
           title="Refresh facilities"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-primary" : ""}`} />
@@ -77,74 +83,33 @@ export default function AdminFacilitiesClient() {
         </button>
       </div>
 
-      {/* Stat Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-card border-border">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Total Facilities
+      {/* ── Stat Cards ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {stats.map(({ label, value, icon: Icon, color, bg, border }) => (
+          <div
+            key={label}
+            className="rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.05] to-white/[0.02] p-4 glow-card"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60">
+                {label}
               </p>
-              <p className="font-display text-2xl font-semibold text-foreground mt-1">
-                {totalFacilities}
-              </p>
+              <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${bg} border ${border}`}>
+                <Icon className={`h-3.5 w-3.5 ${color}`} />
+              </div>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Building2 className="h-5 w-5" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Available
-              </p>
-              <p className="font-display text-2xl font-semibold text-emerald-400 mt-1">
-                {availableCount}
-              </p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Under Maintenance
-              </p>
-              <p className="font-display text-2xl font-semibold text-purple-400 mt-1">
-                {maintenanceCount}
-              </p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
-              <Wrench className="h-5 w-5" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Total Seats
-              </p>
-              <p className="font-display text-2xl font-semibold text-foreground mt-1">
-                {totalSeats}
-              </p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
-              <Users className="h-5 w-5" />
-            </div>
-          </CardContent>
-        </Card>
+            <p className={`font-display text-2xl font-semibold ${color}`}>
+              {value.toLocaleString()}
+            </p>
+          </div>
+        ))}
       </div>
 
-      <FacilitiesTable facilities={facilities} onRefresh={loadData} />
+      {/* ── Table ── */}
+      <div>
+        <FacilitiesTable facilities={facilities} onRefresh={loadData} />
+      </div>
     </div>
   );
 }
+

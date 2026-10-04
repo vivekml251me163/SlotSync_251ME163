@@ -1,31 +1,32 @@
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils";
+﻿import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
   {
     variants: {
       variant: {
         default:
-          "border-transparent bg-blue-600 text-white hover:bg-blue-700",
+          'border-primary/30 bg-primary/10 text-primary hover:bg-primary/20',
         secondary:
-          "border-transparent bg-gray-100 text-gray-900 hover:bg-gray-200",
+          'border-white/[0.08] bg-white/[0.05] text-foreground hover:bg-white/[0.08]',
         destructive:
-          "border-transparent bg-red-600 text-white hover:bg-red-700",
-        outline: "text-gray-900 border-gray-300",
+          'border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20',
+        outline:
+          'border-white/[0.10] text-muted-foreground',
         success:
-          "border-transparent bg-emerald-100 text-emerald-800",
+          'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
         warning:
-          "border-transparent bg-amber-100 text-amber-800",
+          'border-amber-500/30 bg-amber-500/10 text-amber-400',
         danger:
-          "border-transparent bg-rose-100 text-rose-800",
+          'border-rose-500/30 bg-rose-500/10 text-rose-400',
         purple:
-          "border-transparent bg-purple-100 text-purple-800",
+          'border-purple-500/30 bg-purple-500/10 text-purple-400',
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: 'default',
     },
   }
 );
@@ -35,9 +36,7 @@ export interface BadgeProps
     VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
-  return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
-  );
+  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
 }
 
 export { Badge, badgeVariants };

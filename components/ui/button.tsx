@@ -1,33 +1,35 @@
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils";
+﻿import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
   {
     variants: {
       variant: {
         default:
-          "bg-blue-600 text-white shadow hover:bg-blue-700",
+          'bg-[#8B5CF6] text-white glow-accent hover:bg-[#9D72F8]',
         destructive:
-          "bg-red-600 text-white shadow-sm hover:bg-red-700",
+          'bg-destructive/90 text-destructive-foreground hover:bg-destructive shadow-[0_0_0_1px_rgba(239,68,68,0.4),0_4px_12px_rgba(239,68,68,0.2)]',
         outline:
-          "border border-gray-300 bg-white hover:bg-gray-100 text-gray-700",
+          'border border-white/[0.08] bg-white/[0.03] text-foreground hover:bg-white/[0.07] hover:border-white/[0.12] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]',
         secondary:
-          "bg-gray-100 text-gray-900 shadow-sm hover:bg-gray-200",
-        ghost: "hover:bg-gray-100 hover:text-gray-900",
-        link: "text-blue-600 underline-offset-4 hover:underline",
+          'bg-white/[0.05] text-foreground hover:bg-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]',
+        ghost:
+          'text-muted-foreground hover:bg-white/[0.05] hover:text-foreground',
+        link:
+          'text-primary underline-offset-4 hover:underline hover:text-primary/80',
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9",
+        default: 'h-9 px-4 py-2',
+        sm: 'h-8 rounded-md px-3 text-xs',
+        lg: 'h-11 rounded-lg px-8 text-base',
+        icon: 'h-9 w-9',
       },
     },
     defaultVariants: {
-      variant: "default",
-      size: "default",
+      variant: 'default',
+      size: 'default',
     },
   }
 );
@@ -47,6 +49,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     );
   }
 );
-Button.displayName = "Button";
+Button.displayName = 'Button';
 
 export { Button, buttonVariants };
+

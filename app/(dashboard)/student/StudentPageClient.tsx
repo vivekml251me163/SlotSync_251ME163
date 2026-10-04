@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { StudentBrowser } from "@/components/student/StudentBrowser";
@@ -30,9 +30,9 @@ export default function StudentPageClient() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-12 w-full rounded-xl bg-card border border-border" />
-        <Skeleton className="h-96 w-full rounded-xl bg-card" />
+      <div className="space-y-4 animate-fade-up">
+        <Skeleton className="h-12 w-full rounded-2xl bg-white/[0.04] border border-white/[0.06]" />
+        <Skeleton className="h-96 w-full rounded-2xl bg-white/[0.03]" />
       </div>
     );
   }
@@ -41,62 +41,46 @@ export default function StudentPageClient() {
   const uniqueTypes = new Set(facilities.map((f) => f.type)).size;
   const totalCapacity = facilities.reduce((sum, f) => sum + (f.capacity || 0), 0);
 
+  const stats = [
+    { label: "Facilities Available", value: totalAvailable, icon: Building2, color: "text-primary", bg: "bg-primary/10", border: "border-primary/20" },
+    { label: "Facility Types", value: uniqueTypes, icon: LayoutGrid, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20" },
+    { label: "Total Seats", value: totalCapacity.toLocaleString(), icon: Users, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+  ];
+
   return (
-    <div className="space-y-8">
-      {/* Page Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
+    <div className="space-y-7 animate-fade-up">
+      {/* ── Page Header ── */}
+      <div>
+        <p className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground/60 mb-2">
+          Student / Browse
+        </p>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">
           Browse Facilities
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
           View real-time slot availability across campus.
         </p>
       </div>
 
-      {/* Stat Strip */}
-      <div className="flex flex-wrap gap-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Building2 className="h-4 w-4" />
+      {/* ── Stat Strip ── */}
+      <div className="flex flex-wrap gap-3">
+        {stats.map(({ label, value, icon: Icon, color, bg, border }) => (
+          <div
+            key={label}
+            className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.05] to-white/[0.02] glow-card"
+          >
+            <div className={`flex h-8 w-8 items-center justify-center rounded-xl ${bg} border ${border}`}>
+              <Icon className={`h-4 w-4 ${color}`} />
+            </div>
+            <div>
+              <p className={`font-display text-xl font-semibold leading-none ${color}`}>{value}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+            </div>
           </div>
-          <div>
-            <p className="font-display text-xl font-semibold text-foreground leading-none">
-              {totalAvailable}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">Facilities Available</p>
-          </div>
-        </div>
-
-        <div className="w-px h-8 self-center bg-border" />
-
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/10 text-violet-400">
-            <LayoutGrid className="h-4 w-4" />
-          </div>
-          <div>
-            <p className="font-display text-xl font-semibold text-foreground leading-none">
-              {uniqueTypes}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">Facility Types</p>
-          </div>
-        </div>
-
-        <div className="w-px h-8 self-center bg-border" />
-
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
-            <Users className="h-4 w-4" />
-          </div>
-          <div>
-            <p className="font-display text-xl font-semibold text-foreground leading-none">
-              {totalCapacity.toLocaleString()}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">Total Seats</p>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Browser */}
+      {/* ── Browser ── */}
       <StudentBrowser facilities={facilities} />
     </div>
   );
