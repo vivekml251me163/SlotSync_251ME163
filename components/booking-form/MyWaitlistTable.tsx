@@ -19,7 +19,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Clock, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Clock, Loader2, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 
 interface WaitlistEntry {
   id: string;
@@ -84,6 +84,12 @@ export function MyWaitlistTable({ onCountsUpdate }: MyWaitlistTableProps) {
 
   useEffect(() => {
     fetchMyWaitlist();
+  }, [fetchMyWaitlist]);
+
+  useEffect(() => {
+    const onFocus = () => fetchMyWaitlist();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [fetchMyWaitlist]);
 
   const handleLeaveWaitlist = async () => {
@@ -183,6 +189,19 @@ export function MyWaitlistTable({ onCountsUpdate }: MyWaitlistTableProps) {
 
   return (
     <div className="space-y-4">
+      {/* Header bar with Refresh button */}
+      <div className="flex items-center justify-between px-1">
+        <span className="text-sm font-semibold text-foreground">Your Active Waitlists</span>
+        <button
+          onClick={() => fetchMyWaitlist()}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-card border border-border hover:bg-accent hover:text-foreground text-muted-foreground transition-colors disabled:opacity-50"
+          title="Refresh waitlist data"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin text-primary" : ""}`} />
+          <span>Refresh Waitlist</span>
+        </button>
+      </div>
       {toastMsg && (
         <div
           className={`flex items-center justify-between rounded-lg p-3 text-sm font-medium ${

@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BookSlotDialog } from "./BookSlotDialog";
 import { JoinWaitlistDialog } from "./JoinWaitlistDialog";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { AlertTriangle, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { AlertTriangle, Clock, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 
 interface SlotItem {
   slotStart: string;
@@ -22,15 +22,17 @@ interface SlotGridProps {
   selectedDate: string;
   facility?: Facility | null;
   isStudent?: boolean;
+  onBookingSuccess?: () => void;
 }
 
 function formatHourLabel(isoString: string): string {
   try {
     const d = new Date(isoString);
-    let hour = d.getUTCHours();
-    const ampm = hour >= 12 ? "PM" : "AM";
-    hour = hour % 12 || 12;
-    return `${hour} ${ampm}`;
+    return d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      hour12: true,
+      timeZone: "Asia/Kolkata",
+    });
   } catch {
     return isoString;
   }
@@ -40,8 +42,8 @@ function formatSlotTimeRange(startIso: string, endIso: string): string {
   try {
     const s = new Date(startIso);
     const e = new Date(endIso);
-    const sTime = s.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
-    const eTime = e.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+    const sTime = s.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
+    const eTime = e.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
     return `${sTime} - ${eTime}`;
   } catch {
     return "";
@@ -53,6 +55,7 @@ export function SlotGrid({
   selectedDate,
   facility,
   isStudent = false,
+  onBookingSuccess,
 }: SlotGridProps) {
   const [slots, setSlots] = useState<SlotItem[]>([]);
   const [userBookingToday, setUserBookingToday] = useState(false);
@@ -162,6 +165,25 @@ export function SlotGrid({
           {errorMsg}
         </div>
       )}
+
+      {/* Calendar Grid Header Bar */}
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-foreground">Time Slot Availability</span>
+          {facility && (
+            <span className="text-xs text-muted-foreground font-medium">({facility.name})</span>
+          )}
+        </div>
+        <button
+          onClick={() => fetchAvailability(false)}
+          disabled={isLoading || isRefetching}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-card border border-border hover:bg-accent hover:text-foreground text-muted-foreground transition-colors disabled:opacity-50"
+          title="Refresh slot availability"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isRefetching || isLoading ? "animate-spin text-primary" : ""}`} />
+          <span>Refresh Slots</span>
+        </button>
+      </div>
 
       {/* Calendar Grid Container */}
       <div className="rounded-xl border border-border bg-card p-4 shadow-sm relative">
@@ -305,6 +327,7 @@ export function SlotGrid({
           slotEnd={bookingSlot.slotEnd}
           onSuccess={() => fetchAvailability(false)}
           onToast={(text) => setToastMsg({ type: "success", text })}
+          onBookingSuccess={onBookingSuccess}
         />
       )}
 

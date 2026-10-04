@@ -43,6 +43,7 @@ import {
 
 interface BookingsTableProps {
   bookings: BookingWithRelations[];
+  onRefresh?: () => void;
 }
 
 function getTypeBadge(type?: string) {
@@ -81,7 +82,7 @@ function getTypeBadge(type?: string) {
   );
 }
 
-export function BookingsTable({ bookings }: BookingsTableProps) {
+export function BookingsTable({ bookings, onRefresh }: BookingsTableProps) {
   const router = useRouter();
 
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -247,7 +248,7 @@ export function BookingsTable({ bookings }: BookingsTableProps) {
         cell: ({ row }) => (
           <BookingRowActions
             booking={row.original}
-            onRefresh={() => router.refresh()}
+            onRefresh={() => { onRefresh ? onRefresh() : router.refresh(); }}
             onToast={(text) => setToastMsg({ type: "success", text })}
           />
         ),

@@ -1,32 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { FacilitiesTable } from "@/components/admin/facilities/FacilitiesTable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, CheckCircle2, Wrench, Users } from "lucide-react";
+import { Building2, CheckCircle2, Wrench, Users, RefreshCw } from "lucide-react";
 import { Facility } from "@/lib/db/schema";
 
 export default function AdminFacilitiesClient() {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const res = await fetch("/api/facilities");
-        if (res.ok) {
-          const data = await res.json();
-          setFacilities(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch facilities:", err);
-      } finally {
-        setLoading(false);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/facilities");
+      if (res.ok) {
+        const data = await res.json();
+        setFacilities(data);
       }
+    } catch (err) {
+      console.error("Failed to fetch facilities:", err);
+    } finally {
+      setLoading(false);
     }
-    loadData();
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    const onFocus = () => loadData();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [loadData]);
 
   if (loading) {
     return (
@@ -49,13 +57,24 @@ export default function AdminFacilitiesClient() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
-          Facilities
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage campus infrastructure, opening hours, and operational status.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
+            Facilities
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage campus infrastructure, opening hours, and operational status.
+          </p>
+        </div>
+        <button
+          onClick={loadData}
+          disabled={loading}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-card border border-border hover:bg-accent hover:text-foreground text-muted-foreground transition-colors disabled:opacity-50 shrink-0 mt-1"
+          title="Refresh facilities"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-primary" : ""}`} />
+          <span>Refresh</span>
+        </button>
       </div>
 
       {/* Stat Cards Row */}
@@ -125,7 +144,7 @@ export default function AdminFacilitiesClient() {
         </Card>
       </div>
 
-      <FacilitiesTable facilities={facilities} />
+      <FacilitiesTable facilities={facilities} onRefresh={loadData} />
     </div>
   );
 }

@@ -421,6 +421,38 @@ export async function PATCH(
         return NextResponse.json(updated, { status: 200 });
       }
 
+      case "COMPLETE_BOOKING": {
+        // Only the booking owner can mark it completed
+        if (booking.userId !== user.id) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
+        if (booking.status !== "APPROVED") {
+          return NextResponse.json(
+            { error: "Invalid status transition", current: booking.status },
+            { status: 400 }
+          );
+        }
+
+        // Time-window guard: must be during the booking timeslot
+        const now = new Date();
+        const slotStartTime = new Date(booking.slotStart);
+        const slotEndTime = new Date(booking.slotEnd);
+        if (now < slotStartTime || now > slotEndTime) {
+          return NextResponse.json(
+            { error: "Booking can only be marked as completed during the booking timeslot" },
+            { status: 400 }
+          );
+        }
+
+        const [updated] = await db
+          .update(bookings)
+          .set({ status: "COMPLETED" })
+          .where(eq(bookings.id, id))
+          .returning();
+
+        return NextResponse.json(updated, { status: 200 });
+      }
+
       default:
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }

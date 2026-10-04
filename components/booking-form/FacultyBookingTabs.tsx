@@ -33,6 +33,9 @@ export function FacultyBookingTabs({
 }: FacultyBookingTabsProps) {
   const readOnly = isStudent || isReadOnly;
 
+  const [activeTab, setActiveTab] = useState<string>(readOnly ? "browse" : "book");
+  const [refreshKey, setRefreshKey] = useState<number>(0);
+
   const [selectedFacilityId, setSelectedFacilityId] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   // Tab badge counts — updated by child tables when they load data
@@ -41,8 +44,14 @@ export function FacultyBookingTabs({
   const selectedFacility = initialFacilities.find((f) => f.id === selectedFacilityId) ?? null;
   const canShowGrid = selectedFacilityId !== "" && selectedDate !== "";
 
+  const handleBookingSuccess = () => {
+    // Trigger fresh data load for My Bookings and redirect to "my-bookings" tab
+    setRefreshKey((prev) => prev + 1);
+    setActiveTab("my-bookings");
+  };
+
   return (
-    <Tabs defaultValue={readOnly ? "browse" : "book"} className="w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <TabsList className="h-auto bg-card border border-border rounded-xl p-1 gap-1 flex-wrap">
         {/* Book a Slot tab — hidden for strict read-only/student */}
         {!readOnly && (
@@ -113,6 +122,7 @@ export function FacultyBookingTabs({
               selectedDate={selectedDate}
               facility={selectedFacility}
               isStudent={false}
+              onBookingSuccess={handleBookingSuccess}
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-64 text-center rounded-xl border border-dashed border-border bg-card/50">
@@ -164,6 +174,7 @@ export function FacultyBookingTabs({
       {!readOnly && (
         <TabsContent value="my-bookings" className="mt-6 outline-none">
           <MyBookingsTable
+            refreshKey={refreshKey}
             onCountsUpdate={(activeCount, approvedCount, pendingCount) => {
               setCounts((prev) => ({ ...prev, activeBookings: activeCount }));
               onBookingsCountUpdate?.(approvedCount, pendingCount);

@@ -12,6 +12,7 @@ export function getStatusConfig(status: string) {
     REJECTED:                 { label: 'Rejected',            className: 'bg-red-500/15 text-red-400 border-red-500/30' },
     CANCELLED:                { label: 'Cancelled',           className: 'bg-slate-500/15 text-slate-400 border-slate-500/30' },
     CANCELLATION_REQUESTED:   { label: 'Cancel Requested',    className: 'bg-orange-500/15 text-orange-400 border-orange-500/30' },
+    COMPLETED:                { label: 'Completed',           className: 'bg-sky-500/15 text-sky-400 border-sky-500/30' },
     AVAILABLE:                { label: 'Available',           className: 'bg-green-500/15 text-green-400 border-green-500/30' },
     UNAVAILABLE:              { label: 'Unavailable',         className: 'bg-red-500/15 text-red-400 border-red-500/30' },
     UNDER_MAINTENANCE:        { label: 'Maintenance',         className: 'bg-purple-500/15 text-purple-400 border-purple-500/30' },
@@ -21,13 +22,13 @@ export function getStatusConfig(status: string) {
 
 export function formatDate(iso: string | Date): string {
   try {
-    const d = new Date(iso);
+    const d = typeof iso === "string" ? new Date(iso) : iso;
     if (isNaN(d.getTime())) return String(iso);
     return d.toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "short",
       year: "numeric",
-      timeZone: "UTC",
+      timeZone: "Asia/Kolkata",
     });
   } catch {
     return String(iso);
@@ -43,7 +44,7 @@ export function formatTime(iso: string | Date): string {
         const parts = trimmed.split(":");
         const hh = parts[0].padStart(2, "0");
         const mm = parts[1];
-        d = new Date(`2000-01-01T${hh}:${mm}:00.000Z`);
+        d = new Date(`2000-01-01T${hh}:${mm}:00+05:30`);
       }
     }
     if (isNaN(d.getTime())) return String(iso);
@@ -51,11 +52,38 @@ export function formatTime(iso: string | Date): string {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
-      timeZone: "UTC",
+      timeZone: "Asia/Kolkata",
     });
   } catch {
     return String(iso);
   }
+}
+
+export function getISTDateString(date: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = parts.find((p) => p.type === "month")?.value;
+  const day = parts.find((p) => p.type === "day")?.value;
+  return `${year}-${month}-${day}`;
+}
+
+export function getISTTimeHHMM(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+
+  const hour = parts.find((p) => p.type === "hour")?.value.padStart(2, "0") || "00";
+  const minute = parts.find((p) => p.type === "minute")?.value.padStart(2, "0") || "00";
+  return `${hour}:${minute}`;
 }
 
 export function relativeTime(iso: string | Date): string {

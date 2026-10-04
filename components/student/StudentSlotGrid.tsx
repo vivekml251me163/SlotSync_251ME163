@@ -21,10 +21,11 @@ interface StudentSlotGridProps {
 function formatHourLabel(isoString: string): string {
   try {
     const d = new Date(isoString);
-    let hour = d.getUTCHours();
-    const ampm = hour >= 12 ? "PM" : "AM";
-    hour = hour % 12 || 12;
-    return `${hour} ${ampm}`;
+    return d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      hour12: true,
+      timeZone: "Asia/Kolkata",
+    });
   } catch {
     return "";
   }
@@ -33,7 +34,12 @@ function formatHourLabel(isoString: string): string {
 function formatSlotTime(isoString: string): string {
   try {
     const d = new Date(isoString);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+    return d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Kolkata",
+    });
   } catch {
     return "";
   }

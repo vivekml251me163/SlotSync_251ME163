@@ -1,39 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { BookingsTable } from "@/components/admin/bookings/BookingsTable";
 import { BookingWithRelations } from "@/components/admin/bookings/BookingRowActions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, Clock, CheckCircle2, XCircle, RotateCcw } from "lucide-react";
+import { Calendar, Clock, CheckCircle2, XCircle, RotateCcw, RefreshCw } from "lucide-react";
 
 export default function AdminBookingsClient() {
   const [bookings, setBookings] = useState<BookingWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const res = await fetch("/api/bookings");
-        if (res.ok) {
-          const data = await res.json();
-          const formatted = data.map((b: any) => ({
-            ...b,
-            date: String(b.date),
-            slotStart: new Date(b.slotStart).toISOString(),
-            slotEnd: new Date(b.slotEnd).toISOString(),
-            createdAt: new Date(b.createdAt).toISOString(),
-          }));
-          setBookings(formatted);
-        }
-      } catch (err) {
-        console.error("Failed to fetch bookings:", err);
-      } finally {
-        setLoading(false);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/bookings");
+      if (res.ok) {
+        const data = await res.json();
+        const formatted = data.map((b: any) => ({
+          ...b,
+          date: String(b.date),
+          slotStart: new Date(b.slotStart).toISOString(),
+          slotEnd: new Date(b.slotEnd).toISOString(),
+          createdAt: new Date(b.createdAt).toISOString(),
+        }));
+        setBookings(formatted);
       }
+    } catch (err) {
+      console.error("Failed to fetch bookings:", err);
+    } finally {
+      setLoading(false);
     }
-    loadData();
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    const onFocus = () => loadData();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [loadData]);
 
   if (loading) {
     return (
@@ -57,13 +65,24 @@ export default function AdminBookingsClient() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
-          Bookings
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Review and manage all campus booking requests, approvals, and cancellations.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">
+            Bookings
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Review and manage all campus booking requests, approvals, and cancellations.
+          </p>
+        </div>
+        <button
+          onClick={loadData}
+          disabled={loading}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-card border border-border hover:bg-accent hover:text-foreground text-muted-foreground transition-colors disabled:opacity-50 shrink-0 mt-1"
+          title="Refresh bookings"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-primary" : ""}`} />
+          <span>Refresh</span>
+        </button>
       </div>
 
       {/* Stat Cards Row */}
@@ -149,7 +168,7 @@ export default function AdminBookingsClient() {
         </Card>
       </div>
 
-      <BookingsTable bookings={bookings} />
+      <BookingsTable bookings={bookings} onRefresh={loadData} />
     </div>
   );
 }

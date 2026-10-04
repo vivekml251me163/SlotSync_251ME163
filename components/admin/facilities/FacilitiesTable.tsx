@@ -38,6 +38,7 @@ import {
 
 interface FacilitiesTableProps {
   facilities: Facility[];
+  onRefresh?: () => void;
 }
 
 function getTypeBadge(type: string) {
@@ -74,7 +75,7 @@ function getTypeBadge(type: string) {
   );
 }
 
-export function FacilitiesTable({ facilities }: FacilitiesTableProps) {
+export function FacilitiesTable({ facilities, onRefresh }: FacilitiesTableProps) {
   const router = useRouter();
 
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -209,7 +210,7 @@ export function FacilitiesTable({ facilities }: FacilitiesTableProps) {
         cell: ({ row }) => (
           <FacilityRowActions
             facility={row.original}
-            onRefresh={() => router.refresh()}
+            onRefresh={() => { onRefresh ? onRefresh() : router.refresh(); }}
             onToast={(text) => setToastMsg({ type: "success", text })}
           />
         ),
@@ -446,7 +447,7 @@ export function FacilitiesTable({ facilities }: FacilitiesTableProps) {
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onSuccess={() => {
-          router.refresh();
+          onRefresh ? onRefresh() : router.refresh();
           setToastMsg({ type: "success", text: "Facility created successfully." });
         }}
       />

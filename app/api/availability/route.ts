@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { facilities, bookings } from "@/lib/db/schema";
 import { requireRole, ALL_AUTHENTICATED } from "@/lib/permissions";
 import { and, eq, inArray, notInArray } from "drizzle-orm";
+import { getISTDateString, getISTTimeHHMM } from "@/lib/utils";
 
 export async function GET(req: Request) {
   try {
@@ -23,10 +24,9 @@ export async function GET(req: Request) {
       );
     }
 
-    // Check past date
-    const selectedDate = new Date(dateParam + "T00:00:00");
-    const today = new Date(new Date().toDateString());
-    if (isNaN(selectedDate.getTime()) || selectedDate < today) {
+    // Check past date in IST
+    const todayStr = getISTDateString();
+    if (dateParam < todayStr) {
       return NextResponse.json(
         { error: "Cannot check availability for past dates" },
         { status: 400 }
@@ -98,13 +98,22 @@ export async function GET(req: Request) {
       const hEnd = Math.floor((min + 60) / 60);
       const mEnd = (min + 60) % 60;
 
-      const slotStartISO = `${dateParam}T${String(hStart).padStart(2, "0")}:${String(mStart).padStart(2, "0")}:00.000Z`;
-      const slotEndISO = `${dateParam}T${String(hEnd).padStart(2, "0")}:${String(mEnd).padStart(2, "0")}:00.000Z`;
+      const slotStartStr = `${dateParam}T${String(hStart).padStart(2, "0")}:${String(mStart).padStart(2, "0")}:00+05:30`;
+      const slotEndStr = `${dateParam}T${String(hEnd).padStart(2, "0")}:${String(mEnd).padStart(2, "0")}:00+05:30`;
+      const slotStartDate = new Date(slotStartStr);
+      const slotEndDate = new Date(slotEndStr);
+      const slotStartISO = slotStartDate.toISOString();
+      const slotEndISO = slotEndDate.toISOString();
+
+      const startHHMMStr = `${String(hStart).padStart(2, "0")}:${String(mStart).padStart(2, "0")}`;
 
       // Check if matches existing booking
       const matchedBooking = existingBookings.find((b) => {
-        const bStartISO = new Date(b.slotStart).toISOString();
-        return bStartISO === slotStartISO;
+        const bDate = new Date(b.slotStart);
+        return (
+          bDate.getTime() === slotStartDate.getTime() ||
+          (getISTDateString(bDate) === dateParam && getISTTimeHHMM(bDate) === startHHMMStr)
+        );
       });
 
       let status: "available" | "booked" | "pending" = "available";

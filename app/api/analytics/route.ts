@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
         SELECT f.id as "facilityId", f.name as "facilityName", COUNT(b.id)::int as "bookingCount"
         FROM bookings b
         JOIN facilities f ON b.facility_id = f.id
-        WHERE b.status = 'APPROVED'
+        WHERE b.status IN ('APPROVED', 'COMPLETED')
         GROUP BY f.id, f.name
         ORDER BY "bookingCount" DESC
         LIMIT 5
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
       db.execute<{ hour: number; bookingCount: number }>(sql`
         SELECT EXTRACT(HOUR FROM slot_start)::int as hour, COUNT(*)::int as "bookingCount"
         FROM bookings
-        WHERE status = 'APPROVED'
+        WHERE status IN ('APPROVED', 'COMPLETED')
         GROUP BY hour
         ORDER BY hour ASC
       `),
@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
         SELECT
           TO_CHAR(DATE_TRUNC(${granularity}, date::date), ${dateFormat}) as period,
           COUNT(*)::int as "bookingCount",
-          COUNT(*) FILTER (WHERE status = 'APPROVED')::int as "approvedCount",
+          COUNT(*) FILTER (WHERE status IN ('APPROVED', 'COMPLETED'))::int as "approvedCount",
           COUNT(*) FILTER (WHERE status = 'CANCELLED')::int as "cancelledCount"
         FROM bookings
         WHERE date::date >= NOW() - CAST(${intervalStr} AS INTERVAL)
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
       }>(sql`
         SELECT
           COUNT(*)::int as total,
-          COUNT(*) FILTER (WHERE status = 'APPROVED')::int as approved,
+          COUNT(*) FILTER (WHERE status IN ('APPROVED', 'COMPLETED'))::int as approved,
           COUNT(*) FILTER (WHERE status = 'REJECTED')::int as rejected,
           COUNT(*) FILTER (WHERE status = 'CANCELLED')::int as cancelled,
           COUNT(*) FILTER (WHERE status = 'PENDING')::int as pending
@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
         SELECT u.id as "userId", u.name as "userName", COUNT(b.id)::int as "bookingCount"
         FROM bookings b
         JOIN users u ON b.user_id = u.id
-        WHERE b.status = 'APPROVED'
+        WHERE b.status IN ('APPROVED', 'COMPLETED')
         GROUP BY u.id, u.name
         ORDER BY "bookingCount" DESC
         LIMIT 5

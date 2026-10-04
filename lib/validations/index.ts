@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getISTDateString } from "@/lib/utils";
 
 export const userRoleSchema = z.enum(["ADMIN", "FACULTY", "CONVENOR", "STUDENT"]);
 
@@ -114,9 +115,8 @@ export const createBookingSchema = z
   )
   .refine(
     (d) => {
-      const selectedDate = new Date(d.date + "T00:00:00");
-      const today = new Date(new Date().toDateString());
-      return selectedDate >= today;
+      const todayStr = getISTDateString();
+      return d.date >= todayStr;
     },
     { message: "Cannot book in the past", path: ["date"] }
   );
@@ -128,6 +128,7 @@ export const updateBookingSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("REJECT"), rejectionReason: z.string().min(10, { message: "Rejection reason must be at least 10 characters" }) }),
   z.object({ action: z.literal("APPROVE_CANCELLATION") }),
   z.object({ action: z.literal("REJECT_CANCELLATION") }),
+  z.object({ action: z.literal("COMPLETE_BOOKING") }),
 ]);
 
 export const joinWaitlistSchema = z
@@ -138,9 +139,8 @@ export const joinWaitlistSchema = z
   })
   .refine(
     (d) => {
-      const selectedDate = new Date(d.date + "T00:00:00");
-      const today = new Date(new Date().toDateString());
-      return selectedDate >= today;
+      const todayStr = getISTDateString();
+      return d.date >= todayStr;
     },
     { message: "Cannot join waitlist for past date", path: ["date"] }
   );

@@ -111,6 +111,12 @@ export function AnalyticsDashboard() {
     fetchAnalytics(range);
   }, [range, fetchAnalytics]);
 
+  useEffect(() => {
+    const onFocus = () => fetchAnalytics(range);
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [range, fetchAnalytics]);
+
   // ── Loading ──────────────────────────────────────────────────────────────
   if (isLoading) return <AnalyticsSkeleton />;
 
@@ -141,7 +147,7 @@ export function AnalyticsDashboard() {
 
   const statCards = [
     { label: "Total",     value: stats.total,     sublabel: "All time total",          icon: BarChart3,     iconClass: "text-muted-foreground" },
-    { label: "Approved",  value: stats.approved,  sublabel: "Successfully approved",   icon: CheckCircle2,  iconClass: "text-green-400" },
+    { label: "Approved",  value: stats.approved,  sublabel: "Approved or completed",   icon: CheckCircle2,  iconClass: "text-green-400" },
     { label: "Pending",   value: stats.pending,   sublabel: "Awaiting review",         icon: Clock,         iconClass: "text-yellow-400" },
     { label: "Rejected",  value: stats.rejected,  sublabel: "Admin rejected",          icon: XCircle,       iconClass: "text-red-400" },
     { label: "Cancelled", value: stats.cancelled, sublabel: "User cancelled",          icon: Ban,           iconClass: "text-slate-400" },
@@ -161,13 +167,24 @@ export function AnalyticsDashboard() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Campus facility usage insights</p>
         </div>
-        <Tabs value={range} onValueChange={(v) => setRange(v as typeof range)}>
-          <TabsList className="bg-muted/50 border border-border">
-            <TabsTrigger value="daily"   className="text-xs px-4">Daily</TabsTrigger>
-            <TabsTrigger value="weekly"  className="text-xs px-4">Weekly</TabsTrigger>
-            <TabsTrigger value="monthly" className="text-xs px-4">Monthly</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => fetchAnalytics(range)}
+            disabled={isLoading}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-card border border-border hover:bg-accent hover:text-foreground text-muted-foreground transition-colors disabled:opacity-50"
+            title="Refresh analytics"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin text-primary" : ""}`} />
+            <span>Refresh</span>
+          </button>
+          <Tabs value={range} onValueChange={(v) => setRange(v as typeof range)}>
+            <TabsList className="bg-muted/50 border border-border">
+              <TabsTrigger value="daily"   className="text-xs px-4">Daily</TabsTrigger>
+              <TabsTrigger value="weekly"  className="text-xs px-4">Weekly</TabsTrigger>
+              <TabsTrigger value="monthly" className="text-xs px-4">Monthly</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
 
       {/* ── Section 2: Stat Cards ── */}

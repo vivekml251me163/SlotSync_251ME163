@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -28,7 +28,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { CalendarDays, Info, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { CalendarDays, Info, Loader2, CheckCircle2, AlertCircle, CheckCheck, RefreshCw } from "lucide-react";
 
 interface UserBooking {
   id: string;
@@ -67,9 +67,10 @@ function getTypeBadge(type?: string) {
 interface MyBookingsTableProps {
   /** Called after data loads. activeCount = PENDING+APPROVED+CANCELLATION_REQUESTED */
   onCountsUpdate?: (activeCount: number, approvedCount: number, pendingCount: number) => void;
+  refreshKey?: number;
 }
 
-export function MyBookingsTable({ onCountsUpdate }: MyBookingsTableProps) {
+export function MyBookingsTable({ onCountsUpdate, refreshKey }: MyBookingsTableProps) {
   const [bookings, setBookings] = useState<UserBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [toastMsg, setToastMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -80,6 +81,19 @@ export function MyBookingsTable({ onCountsUpdate }: MyBookingsTableProps) {
   // Direct Cancel AlertDialog state
   const [directCancelBooking, setDirectCancelBooking] = useState<UserBooking | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+
+  // Complete Booking AlertDialog state
+  const [completeBooking, setCompleteBooking] = useState<UserBooking | null>(null);
+  const [isCompleting, setIsCompleting] = useState(false);
+
+  // Track current time for slot-window rendering
+  const [now, setNow] = useState(() => new Date());
+  const nowTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    nowTimerRef.current = setInterval(() => setNow(new Date()), 30_000);
+    return () => { if (nowTimerRef.current) clearInterval(nowTimerRef.current); };
+  }, []);
 
   const fetchMyBookings = useCallback(async () => {
     setIsLoading(true);
@@ -105,7 +119,43 @@ export function MyBookingsTable({ onCountsUpdate }: MyBookingsTableProps) {
 
   useEffect(() => {
     fetchMyBookings();
+  }, [fetchMyBookings, refreshKey]);
+
+  useEffect(() => {
+    const onFocus = () => fetchMyBookings();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [fetchMyBookings]);
+
+  function isWithinSlot(b: UserBooking) {
+    const start = new Date(b.slotStart);
+    const end = new Date(b.slotEnd);
+    return now >= start && now <= end;
+  }
+
+  const handleCompleteBooking = async () => {
+    if (!completeBooking) return;
+    setIsCompleting(true);
+    try {
+      const res = await fetch(`/api/bookings/${completeBooking.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "COMPLETE_BOOKING" }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setToastMsg({ type: "error", text: err?.error || "Failed to mark booking as completed." });
+      } else {
+        setToastMsg({ type: "success", text: "Booking marked as completed!" });
+        fetchMyBookings();
+      }
+    } catch {
+      setToastMsg({ type: "error", text: "An error occurred." });
+    } finally {
+      setIsCompleting(false);
+      setCompleteBooking(null);
+    }
+  };
 
   const handleDirectCancel = async () => {
     if (!directCancelBooking) return;
@@ -217,12 +267,23 @@ export function MyBookingsTable({ onCountsUpdate }: MyBookingsTableProps) {
           }
           if (b.status === "APPROVED") {
             return (
-              <button
-                onClick={() => setRequestCancelBooking(b)}
-                className="text-xs font-semibold text-muted-foreground hover:text-foreground hover:underline"
-              >
-                Request Cancellation
-              </button>
+              <div className="flex flex-col items-start gap-1.5">
+                {isWithinSlot(b) && (
+                  <button
+                    onClick={() => setCompleteBooking(b)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2.5 py-1 rounded-full hover:bg-sky-500/20 transition-colors"
+                  >
+                    <CheckCheck className="h-3.5 w-3.5" />
+                    Mark as Completed
+                  </button>
+                )}
+                <button
+                  onClick={() => setRequestCancelBooking(b)}
+                  className="text-xs font-semibold text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  Request Cancellation
+                </button>
+              </div>
             );
           }
           if (b.status === "CANCELLATION_REQUESTED") {
@@ -236,7 +297,8 @@ export function MyBookingsTable({ onCountsUpdate }: MyBookingsTableProps) {
         },
       },
     ],
-    []
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [now]
   );
 
   const table = useReactTable({
@@ -249,6 +311,20 @@ export function MyBookingsTable({ onCountsUpdate }: MyBookingsTableProps) {
 
   return (
     <div className="space-y-4">
+      {/* Header bar with Refresh button */}
+      <div className="flex items-center justify-between px-1">
+        <span className="text-sm font-semibold text-foreground">Your Booking Requests</span>
+        <button
+          onClick={() => fetchMyBookings()}
+          disabled={isLoading}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-card border border-border hover:bg-accent hover:text-foreground text-muted-foreground transition-colors disabled:opacity-50"
+          title="Refresh bookings data"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin text-primary" : ""}`} />
+          <span>Refresh Bookings</span>
+        </button>
+      </div>
+
       {toastMsg && (
         <div
           className={`flex items-center justify-between rounded-lg p-3 text-sm font-medium ${
@@ -380,6 +456,49 @@ export function MyBookingsTable({ onCountsUpdate }: MyBookingsTableProps) {
           onSuccess={fetchMyBookings}
           onToast={(text) => setToastMsg({ type: "success", text })}
         />
+      )}
+
+      {/* Mark as Completed Confirmation Dialog */}
+      {completeBooking && (
+        <AlertDialog open={!!completeBooking} onOpenChange={() => setCompleteBooking(null)}>
+          <AlertDialogContent className="bg-card border-border sm:max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-display text-xl font-semibold text-foreground">
+                Mark Booking as Completed?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-muted-foreground text-sm">
+                Confirm that you have used the facility{" "}
+                <strong className="text-foreground">{completeBooking.facility?.name}</strong>{" "}
+                during this slot. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-2 pt-2">
+              <AlertDialogCancel disabled={isCompleting} className="border-border">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                disabled={isCompleting}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleCompleteBooking();
+                }}
+                className="bg-sky-600 text-white hover:bg-sky-700"
+              >
+                {isCompleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                    <span>Completing...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCheck className="h-4 w-4 mr-1.5" />
+                    <span>Yes, Mark as Completed</span>
+                  </>
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );

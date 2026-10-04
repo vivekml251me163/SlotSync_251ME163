@@ -5,6 +5,7 @@ import { createBookingSchema } from "@/lib/validations";
 import { requireRole, FACULTY_OR_ABOVE, ALL_AUTHENTICATED } from "@/lib/permissions";
 import { sendEmail } from "@/lib/email/send";
 import { and, eq, gt, inArray, notInArray } from "drizzle-orm";
+import { getISTTimeHHMM } from "@/lib/utils";
 
 export async function GET(req: Request) {
   try {
@@ -127,8 +128,8 @@ export async function POST(req: Request) {
     const startDate = new Date(slotStart);
     const endDate = new Date(slotEnd);
 
-    const startHHMM = `${String(startDate.getUTCHours()).padStart(2, "0")}:${String(startDate.getUTCMinutes()).padStart(2, "0")}`;
-    const endHHMM = `${String(endDate.getUTCHours()).padStart(2, "0")}:${String(endDate.getUTCMinutes()).padStart(2, "0")}`;
+    const startHHMM = getISTTimeHHMM(startDate);
+    const endHHMM = getISTTimeHHMM(endDate);
 
     if (startHHMM < facility.openingTime || endHHMM > facility.closingTime) {
       return NextResponse.json(

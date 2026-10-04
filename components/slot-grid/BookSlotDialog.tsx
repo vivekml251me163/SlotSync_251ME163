@@ -23,6 +23,7 @@ interface BookSlotDialogProps {
   slotEnd: string;
   onSuccess: () => void;
   onToast: (message: string) => void;
+  onBookingSuccess?: () => void;
 }
 
 export function BookSlotDialog({
@@ -37,6 +38,7 @@ export function BookSlotDialog({
   slotEnd,
   onSuccess,
   onToast,
+  onBookingSuccess,
 }: BookSlotDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -77,6 +79,7 @@ export function BookSlotDialog({
       } else {
         onToast("Booking requested successfully!");
         onSuccess();
+        onBookingSuccess?.();
         onOpenChange(false);
       }
     } catch {

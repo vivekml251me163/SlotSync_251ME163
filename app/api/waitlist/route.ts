@@ -4,6 +4,7 @@ import { waitlist, facilities, bookings, penalties } from "@/lib/db/schema";
 import { joinWaitlistSchema } from "@/lib/validations";
 import { requireRole, FACULTY_OR_ABOVE, ALL_AUTHENTICATED } from "@/lib/permissions";
 import { and, eq, gt, inArray, notInArray, sql } from "drizzle-orm";
+import { getISTTimeHHMM } from "@/lib/utils";
 
 export async function GET(req: Request) {
   try {
@@ -114,7 +115,7 @@ export async function POST(req: Request) {
     }
 
     // 3. Operating hours check
-    const startHHMM = `${String(startDate.getUTCHours()).padStart(2, "0")}:${String(startDate.getUTCMinutes()).padStart(2, "0")}`;
+    const startHHMM = getISTTimeHHMM(startDate);
     if (startHHMM < facility.openingTime || startHHMM >= facility.closingTime) {
       return NextResponse.json(
         { error: "Outside operating hours" },

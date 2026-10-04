@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { Facility } from "@/lib/db/schema";
+import { getISTDateString } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -77,10 +78,9 @@ export function FacilitySelector({
   }, [selectedDate]);
 
   const isToday = useMemo(() => {
-    if (!selectedDateObj) return false;
-    const todayStr = new Date().toISOString().split("T")[0];
-    return selectedDate === todayStr;
-  }, [selectedDate, selectedDateObj]);
+    if (!selectedDate) return false;
+    return selectedDate === getISTDateString();
+  }, [selectedDate]);
 
   const formattedDateDisplay = useMemo(() => {
     if (!selectedDateObj) return "Select Date";
