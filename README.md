@@ -92,15 +92,14 @@ The tree above shows the main structure only. Deeper leaf nodes can be added lat
 
 ## Tech Stack
 
-- Next.js 16
-- React 19
-- TypeScript
-- Tailwind CSS
-- Drizzle ORM
-- Auth.js / NextAuth beta
-- Inngest
-- Resend
-- shadcn/ui and Radix UI primitives
+- Next.js — App framework providing the App Router, server components, routing, and API routes.
+- Drizzle ORM — Type-safe database models, migrations, and query layer (see `drizzle/` and `lib/db/`).
+- PostgreSQL — Relational database used as the primary datastore (configured via `DATABASE_URL`).
+- Auth.js / NextAuth — Authentication and session management for users and providers.
+- Inngest — Event ingestion and background job orchestration for serverless workflows.
+- Resend — Transactional email delivery service for notifications and invites.
+- shadcn/ui — Accessible UI primitives and component patterns used by the design system.
+- Node.js — JavaScript runtime for server and build tooling.
 
 ## Installation
 
